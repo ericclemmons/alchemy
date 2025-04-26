@@ -303,12 +303,44 @@ export function withJurisdiction(
 }
 
 /**
+ * Get a bucket
+ */
+export async function getBucket(
+  api: CloudflareApi,
+  bucketName: string,
+  props: BucketProps = {}
+): Promise<CloudflareBucketResponse> {
+  const headers = withJurisdiction({}, props);
+  const getResponse = await api.get(
+    `/accounts/${api.accountId}/r2/buckets/${bucketName}`,
+    { headers }
+  );
+
+  if (!getResponse.ok) {
+    return await handleApiError(getResponse, "get", "R2 bucket", bucketName);
+  }
+
+  if (getResponse.status === 200) {
+    return (await getResponse.json()) as CloudflareBucketResponse;
+  }
+
+  const errorData: any = await getResponse.json().catch(() => ({
+    errors: [{ message: getResponse.statusText }],
+  }));
+
+  throw new CloudflareApiError(
+    `Error getting R2 bucket '${bucketName}': ${errorData.errors?.[0]?.message || getResponse.statusText}`,
+    getResponse
+  );
+}
+
+/**
  * Create a new bucket
  */
 export async function createBucket(
   api: CloudflareApi,
   bucketName: string,
-  props: BucketProps
+  props: BucketProps = {}
 ): Promise<CloudflareBucketResponse> {
   // Create new R2 bucket
   const createPayload: any = {
