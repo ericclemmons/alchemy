@@ -8,6 +8,7 @@ import {
   type CloudflareApiOptions,
   createCloudflareApi,
 } from "./api.js";
+import { createBucket, getBucket } from "./bucket.js";
 
 /**
  * Options for CloudflareR2StateStore
@@ -67,43 +68,24 @@ export class R2RestStateStore implements StateStore {
     // Create Cloudflare API client with automatic account discovery
     this.api = await createCloudflareApi(this.options);
 
-    // Check if the bucket exists
-    const response = await withExponentialBackoff(
-      async () => {
-        const response = await this.api.get(
-          `/accounts/${this.api.accountId}/r2/buckets/${this.bucketName}`
-        );
-
-        if (!response.ok) {
-          await handleApiError(response, "get", "bucket", this.bucketName);
-        }
-
-        return response;
-      },
-      isRetryableError,
-      5,
-      1000
-    );
-
-    // Create the bucket if it doesn't exist
-    if (response.status === 404) {
+    // Check if the alchemy state bucket exists
+    try {
       await withExponentialBackoff(
-        async () => {
-          const response = await this.api.post(
-            `/accounts/${this.api.accountId}/r2/buckets`,
-            { name: this.bucketName }
-          );
-
-          if (!response.ok) {
-            await handleApiError(response, "create", "bucket", this.bucketName);
-          }
-
-          return response;
-        },
+        () => getBucket(this.api, this.bucketName),
         isRetryableError,
         5,
         1000
       );
+    } catch (error) {
+      // If not, create the alchemy state bucket
+      if (error instanceof CloudflareApiError && error.status === 404) {
+        await withExponentialBackoff(
+          () => createBucket(this.api, this.bucketName),
+          isRetryableError,
+          5,
+          1000
+        );
+      }
     }
 
     this.initialized = true;
