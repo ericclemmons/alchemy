@@ -23,7 +23,7 @@ export interface CloudflareR2StateStoreOptions extends CloudflareApiOptions {
    * The R2 bucket name to use
    * Required - the bucket must already exist
    */
-  bucketName: string;
+  bucketName?: string;
 }
 
 /**
@@ -44,7 +44,7 @@ export class R2RestStateStore implements StateStore {
    */
   constructor(
     public readonly scope: Scope,
-    private readonly options: CloudflareR2StateStoreOptions
+    private readonly options: CloudflareR2StateStoreOptions = {}
   ) {
     // Use the scope's chain to build the prefix, similar to how FileSystemStateStore builds its directory
     const scopePath = scope.chain.join("/");
@@ -52,10 +52,7 @@ export class R2RestStateStore implements StateStore {
       ? `${options.prefix}${scopePath}/`
       : `alchemy/${scopePath}/`;
 
-    if (!options.bucketName) {
-      throw new Error("bucketName is required for CloudflareR2StateStore");
-    }
-    this.bucketName = options.bucketName;
+    this.bucketName = options.bucketName ?? "alchemy-state";
 
     // We'll initialize the API in init() to allow for async creation
     this.api = null as any;
