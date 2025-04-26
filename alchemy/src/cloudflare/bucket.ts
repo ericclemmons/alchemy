@@ -264,10 +264,15 @@ export function createR2Client(config?: R2ClientConfig): Promise<R2Client> {
 }
 
 interface CloudflareBucketResponse {
+  /**
+   * The bucket information returned from the Cloudflare REST API
+   * @see https://developers.cloudflare.com/api/node/resources/r2/subresources/buckets/models/bucket/#(schema)
+   */
   result: {
-    name: string;
-    location?: string;
     creation_date: string;
+    location?: "apac" | "eeur" | "enam" | "weur" | "wnam" | "oc";
+    name: string;
+    storage_class?: "Standard" | "InfrequentAccess";
   };
   success: boolean;
   errors: Array<{ code: number; message: string }>;
