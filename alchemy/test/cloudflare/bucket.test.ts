@@ -3,6 +3,7 @@ import { alchemy } from "../../src/alchemy";
 import { createCloudflareApi } from "../../src/cloudflare/api";
 import {
   createR2Client,
+  getBucket,
   listBuckets,
   listObjects,
   R2Bucket,
@@ -35,6 +36,10 @@ describe("R2 Bucket Resource", async () => {
         locationHint: "wnam", // West North America
       });
       expect(bucket.name).toEqual(testId);
+
+      // Check if bucket exists by getting it explicitly
+      const gotBucket = await getBucket(api, testId);
+      expect(gotBucket.result.name).toEqual(testId);
 
       // Check if bucket exists by listing buckets
       const buckets = await listBuckets(api);
