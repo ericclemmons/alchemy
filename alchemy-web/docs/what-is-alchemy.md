@@ -116,8 +116,10 @@ Alchemy supports custom state backends including file systems, cloud storage, or
 
 ```typescript
 // Use Cloudflare R2 for state
+import { R2RestStateStore } from "alchemy/cloudflare";
+
 const app = await alchemy("my-app", {
-  stateStore: (scope) => new R2StateStore(scope, {
+  stateStore: (scope) => new R2RestStateStore(scope, {
     bucketName: "my-state-bucket"
   })
 });
