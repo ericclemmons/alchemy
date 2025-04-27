@@ -4,10 +4,7 @@ import * as path from "node:path";
 import { alchemy } from "../../src/alchemy";
 import { createCloudflareApi } from "../../src/cloudflare/api";
 import { Worker } from "../../src/cloudflare/worker";
-import {
-  WranglerJson,
-  WranglerJsonSpec,
-} from "../../src/cloudflare/wrangler.json";
+import { WranglerJson } from "../../src/cloudflare/wrangler.json";
 import { destroy } from "../../src/destroy";
 import { BRANCH_PREFIX } from "../util";
 
@@ -49,13 +46,9 @@ describe("WranglerJson Resource", () => {
           compatibilityFlags: ["nodejs_compat"],
         });
 
-        const wranglerJson = await WranglerJson(
+        const { spec } = await WranglerJson(
           `${BRANCH_PREFIX}-test-wrangler-json-1`,
           { worker }
-        );
-
-        const spec: WranglerJsonSpec = JSON.parse(
-          await fs.readFile(wranglerJson.path, "utf-8")
         );
 
         expect(spec.name).toEqual(name);

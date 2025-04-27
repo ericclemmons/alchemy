@@ -52,6 +52,11 @@ export interface WranglerJson
    * Path to the wrangler.json file
    */
   path: string;
+
+  /**
+   * `wrangler.json` spec
+   */
+  spec: WranglerJsonSpec;
 }
 
 /**
@@ -104,6 +109,7 @@ export const WranglerJson = Resource(
     return this({
       ...props,
       path: filePath,
+      spec,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
