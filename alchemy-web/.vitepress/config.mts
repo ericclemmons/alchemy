@@ -3,6 +3,10 @@ import fs from "fs";
 import footnotePlugin from "markdown-it-footnote";
 import path from "path";
 import { defineConfig } from "vitepress";
+import {
+  groupIconMdPlugin,
+  groupIconVitePlugin,
+} from "vitepress-plugin-group-icons";
 import { processFrontmatterFiles } from "../../alchemy/src/web/vitepress";
 
 const description = "Alchemy: Typescript-native Infrastructure-as-Code";
@@ -30,7 +34,10 @@ export default defineConfig({
     // @ts-ignore
     codeTransformers: [transformerTwoslash()],
     theme: { light: "light-plus", dark: "dark-plus" },
-    config: (md) => md.use(footnotePlugin),
+    config: (md) => md.use(footnotePlugin).use(groupIconMdPlugin),
+  },
+  vite: {
+    plugins: [groupIconVitePlugin() as any],
   },
   // https://vitepress.dev/reference/default-theme-config
   themeConfig: {
