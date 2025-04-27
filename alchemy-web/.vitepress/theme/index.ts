@@ -1,5 +1,6 @@
 import TwoslashFloatingVue from "@shikijs/vitepress-twoslash/client";
 import "@shikijs/vitepress-twoslash/style.css";
+import "virtual:group-icons.css";
 import type { Theme as ThemeConfig } from "vitepress";
 import Theme from "vitepress/theme-without-fonts";
 import "./style.css";
