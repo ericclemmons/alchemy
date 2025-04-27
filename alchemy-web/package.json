@@ -6,7 +6,7 @@
     "docs:build": "vitepress build",
     "docs:preview": "vitepress preview"
   },
-  "dependencies": {},
+  "dependencies": { "vitepress-plugin-group-icons": "^1.5.2" },
   "devDependencies": {
     "@shikijs/vitepress-twoslash": "^3.3.0",
     "markdown-it-footnote": "^4.0.0",
