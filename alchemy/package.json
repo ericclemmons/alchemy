@@ -24,6 +24,7 @@
     "./neon": "./lib/neon/index.js",
     "./os": "./lib/os/index.js",
     "./shadcn": "./lib/shadcn/index.js",
+    "./serde": "./lib/serde/index.js",
     "./stripe": "./lib/stripe/index.js",
     "./test/bun": "./lib/test/bun.js",
     "./web/astro": "./lib/web/astro/index.js",
