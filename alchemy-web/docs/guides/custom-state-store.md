@@ -86,9 +86,8 @@ Your custom state store should:
 Here's a skeleton implementation:
 
 ```typescript
-import type { Scope } from "alchemy/scope";
 import { deserialize, serialize } from "alchemy";
-import type { State, StateStore } from "alchemy/state";
+import type { Scope, State, StateStore } from "alchemy";
 
 export interface MyCustomStoreOptions {
   // Options specific to your storage backend
