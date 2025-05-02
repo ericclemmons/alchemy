@@ -170,6 +170,10 @@ export interface WranglerJsonSpec {
   kv_namespaces?: {
     binding: string;
     id: string;
+    /**
+     * The ID of the KV namespace used during `wrangler dev`
+     */
+    preview_id?: string;
   }[];
 
   /**
@@ -190,6 +194,10 @@ export interface WranglerJsonSpec {
   r2_buckets?: {
     binding: string;
     bucket_name: string;
+    /**
+     * The preview name of this R2 bucket at the edge.
+     */
+    preview_bucket_name?: string;
   }[];
 
   /**
@@ -246,6 +254,10 @@ export interface WranglerJsonSpec {
     database_id: string;
     database_name: string;
     migrations_dir?: string;
+    /**
+     * The ID of the D1 database used during `wrangler dev`
+     */
+    preview_database_id?: string;
   }[];
 
   /**
