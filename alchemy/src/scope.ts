@@ -131,7 +131,7 @@ export class Scope {
         resourceIds.filter((id) => !aliveIds.has(id)),
       );
       const orphans = await Promise.all(
-        orphanIds.map(async (id) => (await this.state.get(id))!.output),
+        orphanIds.map(async (id) => (await this.state.get(id))?.output),
       );
       await destroy.all(orphans, {
         quiet: this.quiet,
