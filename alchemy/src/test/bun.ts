@@ -142,6 +142,7 @@ export function test(meta: ImportMeta, defaultOptions?: TestOptions): test {
     scopeName: `${defaultOptions.prefix ? `${defaultOptions.prefix}-` : ""}${path.basename(meta.filename)}`,
     // parent: globalTestScope,
     stateStore: defaultOptions?.stateStore,
+    phase: "up",
   });
 
   test.beforeAll = (fn: (scope: Scope) => Promise<void>) => {
@@ -198,13 +199,8 @@ export function test(meta: ImportMeta, defaultOptions?: TestOptions): test {
             parent: scope,
           },
           async (scope) => {
-            try {
-              // Enter test scope since bun calls from different scope
-              await scope.run(() => fn(scope));
-            } catch (err) {
-              console.error(err);
-              throw err;
-            }
+            // Enter test scope since bun calls from different scope
+            await scope.run(() => fn(scope));
           },
         ),
       timeout,

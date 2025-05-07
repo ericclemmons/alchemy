@@ -29,6 +29,14 @@ export async function apply<Out extends Resource>(
     if (provider === undefined) {
       throw new Error(`Provider "${resource.Kind}" not found`);
     }
+    if (scope.phase === "read") {
+      if (state === undefined) {
+        throw new Error(
+          `Resource "${resource.FQN}" not found and running in 'read' phase.`,
+        );
+      }
+      return state.output as Awaited<Out>;
+    }
     if (state === undefined) {
       state = {
         kind: resource.Kind,
@@ -136,7 +144,6 @@ export async function apply<Out extends Resource>(
     // }
     return output as any;
   } catch (error) {
-    console.error(new Error().stack);
     scope.fail();
     throw error;
   }

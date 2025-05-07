@@ -1,7 +1,7 @@
 import * as crypto from "node:crypto";
 import * as fs from "node:fs/promises";
 import type { Context } from "../context.js";
-import { Bundle, type BundleProps } from "../esbuild/bundle.js";
+import type { BundleProps } from "../esbuild/bundle.js";
 import { Resource } from "../resource.js";
 import { getContentType } from "../util/content-type.js";
 import { withExponentialBackoff } from "../util/retry.js";
@@ -15,8 +15,7 @@ import {
 import type { Assets } from "./assets.js";
 import type { Bindings, WorkerBindingSpec } from "./bindings.js";
 import type { Bound } from "./bound.js";
-import { external } from "./bundle/external.js";
-import { nodejsHybridPlugin } from "./bundle/hybrid-nodejs-compat.js";
+import { bundleWorkerScript } from "./bundle/bundle-worker.js";
 import type { DurableObjectNamespace } from "./durable-object-namespace.js";
 import { type EventSource, isQueueEventSource } from "./event-source.js";
 import {
@@ -86,21 +85,31 @@ export interface WorkerProps<B extends Bindings = Bindings>
 
   /**
    * Path to the entry point file
+   *
    * Will be bundled using esbuild
+   *
    * One of script, entryPoint, or bundle must be provided
    */
   entrypoint?: string;
 
   /**
+   * The project root directory used to resolve aliases.
+   *
+   * @default process.cwd()
+   */
+  projectRoot?: string;
+
+  /**
    * Bundle options when using entryPoint
+   *
    * Ignored if bundle is provided
    */
   bundle?: Omit<BundleProps, "entryPoint">;
 
   /**
    * Module format for the worker script
-   * 'esm' - ECMAScript modules (default)
-   * 'cjs' - CommonJS modules
+   * - 'esm' - ECMAScript modules (default)
+   * - 'cjs' - CommonJS modules
    * @default 'esm'
    */
   format?: "esm" | "cjs";
@@ -119,6 +128,7 @@ export interface WorkerProps<B extends Bindings = Bindings>
 
   /**
    * Environment variables to attach to the worker
+   *
    * These will be converted to plain_text bindings
    */
   env?: {
@@ -127,6 +137,7 @@ export interface WorkerProps<B extends Bindings = Bindings>
 
   /**
    * Whether to enable a workers.dev URL for this worker
+   *
    * If true, the worker will be available at {name}.{subdomain}.workers.dev
    * @default false
    */
@@ -134,6 +145,7 @@ export interface WorkerProps<B extends Bindings = Bindings>
 
   /**
    * Observability configuration for the worker
+   *
    * Controls whether worker logs are enabled
    * @default { enabled: true }
    */
@@ -173,7 +185,9 @@ export interface WorkerProps<B extends Bindings = Bindings>
 
   /**
    * Cron expressions for the trigger.
+   *
    * Uses standard cron syntax (e.g. "0 0 * * *" for daily at midnight)
+   *
    * To clear all cron triggers, pass an empty array.
    *
    * @see https://developers.cloudflare.com/workers/configuration/cron-triggers/#examples
@@ -182,6 +196,7 @@ export interface WorkerProps<B extends Bindings = Bindings>
 
   /**
    * Event sources that this worker will consume.
+   *
    * Can include queues, streams, or other event sources.
    */
   eventSources?: EventSource[];
@@ -371,7 +386,12 @@ export const Worker = Resource(
 
     // Get the script content - either from props.script, or by bundling
     const scriptContent =
-      props.script ?? (await bundleWorkerScript(compatibilityDate, props));
+      props.script ??
+      (await bundleWorkerScript({
+        ...props,
+        compatibilityDate,
+        compatibilityFlags,
+      }));
 
     // Find any assets bindings
     const assetsBindings: { name: string; assets: Assets }[] = [];
@@ -927,51 +947,6 @@ async function assertWorkerDoesNotExist<B extends Bindings>(
   throw new Error(
     `Error checking if worker exists: ${response.status} ${response.statusText} ${await response.text()}`,
   );
-}
-
-async function bundleWorkerScript<B extends Bindings>(
-  compatibilityDate: string,
-  props: WorkerProps<B>,
-) {
-  const bundle = await Bundle("bundle", {
-    entryPoint: props.entrypoint!,
-    format: props.format === "cjs" ? "cjs" : "esm", // Use the specified format or default to ESM
-    target: "esnext",
-    platform: "neutral",
-    minify: false,
-    ...(props.bundle || {}),
-    options: {
-      ...(props.bundle?.options || {}),
-      keepNames: true, // Important for Durable Object classes
-      loader: {
-        ".sql": "text",
-        ".json": "json",
-      },
-      plugins:
-        compatibilityDate >= "2024-09-23" &&
-        props.compatibilityFlags?.find((flag) => flag === "nodejs_compat")
-          ? [await nodejsHybridPlugin()]
-          : [],
-    },
-    external: [
-      ...external,
-      ...(props.bundle?.external ?? []),
-      ...(props.bundle?.options?.external ?? []),
-    ],
-  });
-
-  try {
-    if (bundle.content) {
-      return bundle.content;
-    }
-    if (bundle.path) {
-      return await fs.readFile(bundle.path, "utf-8");
-    }
-    throw new Error("Failed to create bundle");
-  } catch (error) {
-    console.error("Error reading bundle:", error);
-    throw new Error("Error reading bundle");
-  }
 }
 
 async function configureURL<B extends Bindings>(

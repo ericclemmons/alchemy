@@ -1,12 +1,15 @@
-import type { Plugin, PluginBuild } from "esbuild";
-import assert from "node:assert";
-import { builtinModules } from "node:module";
-import nodePath from "node:path";
-import { dedent } from "../../util/dedent.js";
-
 /**
  * Copied from https://github.com/cloudflare/workers-sdk/blob/main/packages/wrangler/src/deployment-bundle/esbuild-plugins/hybrid-nodejs-compat.ts#L17
  */
+
+import type { Plugin, PluginBuild } from "esbuild";
+import assert from "node:assert";
+import { builtinModules, createRequire } from "node:module";
+import nodePath from "node:path";
+import { dedent } from "../../util/dedent.js";
+
+const _require =
+  typeof require === "undefined" ? createRequire(import.meta.url) : require;
 
 const REQUIRED_NODE_BUILT_IN_NAMESPACE = "node-built-in-modules";
 const REQUIRED_UNENV_ALIAS_NAMESPACE = "required-unenv-alias";
@@ -16,7 +19,7 @@ const REQUIRED_UNENV_ALIAS_NAMESPACE = "required-unenv-alias";
  *
  * @returns ESBuild plugin
  */
-export async function nodejsHybridPlugin(): Promise<Plugin> {
+export async function nodeJsCompatPlugin(): Promise<Plugin> {
   // `unenv` and `@cloudflare/unenv-preset` only publish esm
   const { defineEnv } = await import("unenv");
   const { cloudflare } = await import("@cloudflare/unenv-preset");
@@ -118,7 +121,7 @@ function handleUnenvAliasedPackages(
   const aliasAbsolute: Record<string, string> = {};
   for (const [module, unresolvedAlias] of Object.entries(alias)) {
     try {
-      aliasAbsolute[module] = require.resolve(unresolvedAlias);
+      aliasAbsolute[module] = _require.resolve(unresolvedAlias);
     } catch (e) {
       // this is an alias for package that is not installed in the current app => ignore
     }
@@ -212,6 +215,7 @@ function handleNodeJSGlobals(
         module,
       );
     }
+    // eslint-disable-next-line  @typescript-eslint/no-non-null-assertion
     injectsByModule.get(module)!.push({ injectedName, exportName, importName });
   }
 
@@ -220,7 +224,7 @@ function handleNodeJSGlobals(
     // Inject the virtual modules
     ...virtualModulePathToSpecifier.keys(),
     // Inject the polyfills - needs an absolute path
-    ...polyfill.map((m) => require.resolve(m)),
+    ...polyfill.map((m) => _require.resolve(m)),
   ];
 
   build.onResolve({ filter: UNENV_VIRTUAL_MODULE_RE }, ({ path }) => ({
