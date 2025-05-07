@@ -3,7 +3,7 @@ import type { Phase } from "./alchemy.js";
 import { destroy } from "./destroy.js";
 import { FileSystemStateStore } from "./fs/file-system-state-store.js";
 import type { PendingResource, ResourceID } from "./resource.js";
-import type { StateStore, StateStoreType } from "./state.js";
+import type { State, StateStore, StateStoreType } from "./state.js";
 
 const scopeStorage = new AsyncLocalStorage<Scope>();
 
@@ -130,9 +130,12 @@ export class Scope {
       const orphanIds = Array.from(
         resourceIds.filter((id) => !aliveIds.has(id)),
       );
-      const orphans = await Promise.all(
-        orphanIds.map(async (id) => (await this.state.get(id))!.output),
-      );
+      const orphans = (
+        await Promise.all(
+          orphanIds.map(async (id) => (await this.state.get(id))?.output),
+        )
+      ).filter((r): r is State["output"] => r !== undefined);
+
       await destroy.all(orphans, {
         quiet: this.quiet,
         strategy: "sequential",
