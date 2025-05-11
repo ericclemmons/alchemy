@@ -29,7 +29,8 @@ export const external = [
   ...nodejs_compat,
   ...nodejs_compat.map((p) => p.split(":")[1]),
   "cloudflare:workers",
-  // "cloudflare:*",
+  "cloudflare:workflows",
+  "cloudflare:*",
 ];
 
 export const external_als = [
