@@ -26,6 +26,13 @@ const redis = await UpstashRedis("my-redis", {
   primaryRegion: "us-east-1",
   budget: 100
 });
+
+// Create a Redis database with eviction enabled
+const redis = await UpstashRedis("my-redis", {
+  name: "my-redis",
+  primaryRegion: "us-east-1",
+  eviction: true
+});
 ```
 
 ## Configuration
@@ -43,6 +50,7 @@ const redis = await UpstashRedis("my-redis", {
 | `primaryRegion` | `"us-east-1" \| "us-west-1" \| "us-west-2" \| "eu-west-1" \| "eu-central-1" \| "ap-southeast-1" \| "ap-southeast-2" \| "ap-northeast-1" \| "sa-east-1"` | Primary region for the database |
 | `readRegions` | `UpstashRegion[]` | Optional read regions for replication |
 | `budget` | `number` | Optional monthly budget in USD |
+| `eviction` | `boolean` | Optional flag to enable/disable eviction for the database |
 
 ### Output
 
@@ -55,9 +63,10 @@ const redis = await UpstashRedis("my-redis", {
 | `port` | `number` | Database port |
 | `createdAt` | `number` | Creation timestamp |
 | `state` | `string` | Database state |
-| `password` | `string` | Database password |
+| `password` | `Secret` | Database password |
 | `userEmail` | `string` | Owner email |
 | `endpoint` | `string` | Database endpoint |
 | `tls` | `boolean` | TLS enabled |
-| `restToken` | `string` | REST API token |
-| `readOnlyRestToken` | `string` | Read-only REST API token | 
+| `restToken` | `Secret` | REST API token |
+| `readOnlyRestToken` | `Secret` | Read-only REST API token |
+| `eviction` | `boolean` | Whether eviction is enabled | 

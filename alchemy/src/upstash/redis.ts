@@ -1,5 +1,7 @@
+import { alchemy } from "../alchemy.js";
 import type { Context } from "../context.js";
 import { Resource } from "../resource.js";
+import type { Secret } from "../secret.js";
 
 /**
  * Available regions for Upstash Redis databases
@@ -38,6 +40,11 @@ export interface UpstashRedisProps {
    * Monthly budget for the database
    */
   budget?: number;
+
+  /**
+   * Whether to enable eviction for the database
+   */
+  eviction?: boolean;
 }
 
 /**
@@ -79,7 +86,7 @@ export interface UpstashRedis
   /**
    * Password of the database
    */
-  password: string;
+  password: Secret;
 
   /**
    * Email or team id of the owner of the database
@@ -99,12 +106,12 @@ export interface UpstashRedis
   /**
    * REST token for the database
    */
-  restToken: string;
+  restToken: Secret;
 
   /**
    * Read-only REST token for the database
    */
-  readOnlyRestToken: string;
+  readOnlyRestToken: Secret;
 }
 
 /**
@@ -140,6 +147,7 @@ interface UpstashDatabaseResponse {
   tls: boolean;
   rest_token: string;
   read_only_rest_token: string;
+  eviction: boolean;
 }
 
 /**
@@ -266,75 +274,129 @@ export const UpstashRedis = Resource(
     const api = new UpstashApi();
 
     if (this.phase === "delete") {
-      try {
-        if (this.output?.id) {
-          const deleteResponse = await api.delete(
-            `/redis/database/${this.output.id}`,
-          );
-          if (!deleteResponse.ok && deleteResponse.status !== 404) {
-            console.error(
-              "Error deleting database:",
-              deleteResponse.statusText,
-            );
-          }
-        }
-      } catch (error) {
-        console.error("Error deleting database:", error);
+      const response = await api.delete(`/redis/database/${this.output.id}`);
+
+      if (!response.ok && response.status !== 404) {
+        throw new Error(`Error deleting database: ${response.statusText}`);
       }
 
       return this.destroy();
-    } else {
-      try {
-        let response;
+    }
 
-        if (this.phase === "update" && this.output?.id) {
-          // Update existing database
-          response = await api.post(`/redis/database/${this.output.id}`, {
-            name: props.name,
-            primary_region: props.primaryRegion,
-            read_regions: props.readRegions,
-            budget: props.budget,
-          });
-        } else {
-          // Create new database
-          response = await api.post("/redis/database", {
-            name: props.name,
-            region: "global",
-            primary_region: props.primaryRegion,
-            read_regions: props.readRegions,
-            budget: props.budget,
-            tls: true,
-          });
-        }
+    // @ts-ignore This is overridden during update/create
+    let database: UpstashDatabaseResponse = {};
+
+    if (this.phase === "update") {
+      // Update name if changed
+      if (props.name !== this.output.name) {
+        const response = await api.post(`/redis/rename/${this.output.id}`, {
+          name: props.name,
+        });
 
         if (!response.ok) {
-          throw new Error(`API error: ${response.statusText}`);
+          throw new Error(`API error updating name: ${response.statusText}`);
         }
+      }
 
-        const data = (await response.json()) as UpstashDatabaseResponse;
+      // Update read regions if changed
+      if (
+        JSON.stringify(props.readRegions) !==
+        JSON.stringify(this.output.readRegions)
+      ) {
+        const response = await api.post(
+          `/redis/update-regions/${this.output.id}`,
+          {
+            read_regions: props.readRegions || [],
+          },
+        );
 
-        return this({
-          id: data.database_id,
-          name: data.database_name,
-          databaseType: data.database_type,
-          region: data.region,
-          port: data.port,
-          createdAt: data.creation_time,
-          state: data.state,
-          password: data.password,
-          userEmail: data.user_email,
-          endpoint: data.endpoint,
-          tls: data.tls,
-          restToken: data.rest_token,
-          readOnlyRestToken: data.read_only_rest_token,
-          primaryRegion: props.primaryRegion,
-          readRegions: props.readRegions,
-          budget: props.budget,
-        });
-      } catch (error) {
-        console.error("Error creating/updating database:", error);
-        throw error;
+        if (!response.ok) {
+          throw new Error(`API error updating regions: ${response.statusText}`);
+        }
+      }
+
+      // Handle eviction setting if changed
+      if (
+        props.eviction !== undefined &&
+        props.eviction !== this.output.eviction
+      ) {
+        const evictionEndpoint = props.eviction
+          ? "enable-eviction"
+          : "disable-eviction";
+
+        const response = await api.post(
+          `/redis/${evictionEndpoint}/${this.output.id}`,
+          {},
+        );
+
+        if (!response.ok) {
+          console.warn(
+            `API error updating eviction: ${response.statusText}. (Eviction may already be set)`,
+          );
+        }
+      }
+
+      // Get updated database info
+      const response = await api.get(`/redis/database/${this.output.id}`);
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`);
+      }
+
+      database = await response.json();
+    }
+
+    if (this.phase === "create") {
+      const response = await api.post("/redis/database", {
+        budget: props.budget,
+        name: props.name,
+        primary_region: props.primaryRegion,
+        read_regions: props.readRegions,
+        region: "global",
+        tls: true,
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error creating database: ${response.statusText}`);
+      }
+
+      database = await response.json();
+
+      // Handle eviction setting if provided
+      if (props.eviction !== undefined) {
+        const evictionEndpoint = props.eviction
+          ? "enable-eviction"
+          : "disable-eviction";
+
+        const response = await api.post(
+          `/redis/${evictionEndpoint}/${database.database_id}`,
+          {},
+        );
+
+        if (!response.ok) {
+          throw new Error(`API error setting eviction: ${response.statusText}`);
+        }
       }
     }
+
+    return this.create({
+      id: database.database_id,
+      name: database.database_name,
+      databaseType: database.database_type,
+      region: database.region,
+      port: database.port,
+      createdAt: database.creation_time,
+      state: database.state,
+      password: alchemy.secret(database.password),
+      userEmail: database.user_email,
+      endpoint: database.endpoint,
+      tls: database.tls,
+      restToken: alchemy.secret(database.rest_token),
+      readOnlyRestToken: alchemy.secret(database.read_only_rest_token),
+      primaryRegion: props.primaryRegion,
+      readRegions: props.readRegions,
+      budget: props.budget,
+      eviction: props.eviction,
+    });
   },
 );

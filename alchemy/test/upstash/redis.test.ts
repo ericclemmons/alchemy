@@ -20,11 +20,13 @@ describe("UpstashRedis Resource", () => {
       redis = await UpstashRedis(testId, {
         name: `Test Redis ${testId}`,
         primaryRegion: "us-east-1",
+        eviction: true,
       });
 
       expect(redis.id).toBeTruthy();
       expect(redis.name).toEqual(`Test Redis ${testId}`);
       expect(redis.primaryRegion).toEqual("us-east-1");
+      expect(redis.eviction).toEqual(true);
 
       // Verify database was created by querying the API directly
       const getResponse = await api.get(`/redis/database/${redis.id}`);
@@ -32,23 +34,27 @@ describe("UpstashRedis Resource", () => {
 
       const responseData = await getResponse.json();
       expect(responseData.database_name).toEqual(`Test Redis ${testId}`);
+      expect(responseData.eviction).toEqual(true);
 
       // Update the database
       redis = await UpstashRedis(testId, {
         name: `Updated Redis ${testId}`,
         primaryRegion: "us-east-1",
         readRegions: ["us-west-1"],
+        eviction: false,
       });
 
       expect(redis.id).toEqual(redis.id);
       expect(redis.name).toEqual(`Updated Redis ${testId}`);
       expect(redis.readRegions).toEqual(["us-west-1"]);
+      expect(redis.eviction).toEqual(false);
 
       // Verify database was updated
       const getUpdatedResponse = await api.get(`/redis/database/${redis.id}`);
       const updatedData = await getUpdatedResponse.json();
       expect(updatedData.database_name).toEqual(`Updated Redis ${testId}`);
       expect(updatedData.read_regions).toEqual(["us-west-1"]);
+      expect(updatedData.eviction).toEqual(false);
     } catch (err) {
       console.log(err);
       throw err;
