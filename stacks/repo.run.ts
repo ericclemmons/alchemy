@@ -19,6 +19,7 @@ import env, {
   NEON_API_KEY,
   OPENAI_API_KEY,
   STRIPE_API_KEY,
+  UPSTASH_API_KEY,
 } from "./env.js";
 
 const app = await alchemy("alchemy:repo", env);
@@ -97,6 +98,8 @@ await Promise.all([
     R2_ACCESS_KEY_ID: accountAccessToken.accessKeyId,
     R2_SECRET_ACCESS_KEY: accountAccessToken.secretAccessKey,
     SECRET_PASSPHRASE: alchemy.secret(process.env.SECRET_PASSPHRASE!),
+    UPSTASH_API_KEY,
+    UPSTASH_EMAIL: "sam@alchemy.run"
   }).flatMap(async ([name, value]) => {
     const props = {
       owner: "sam-goodwin",
