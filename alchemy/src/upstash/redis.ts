@@ -49,7 +49,7 @@ export interface UpstashRedisProps {
   /**
    * API key to use (overrides environment variable)
    */
-  apiKey?: string;
+  apiKey?: Secret;
 
   /**
    * Email to use (overrides environment variable)
@@ -131,7 +131,7 @@ export interface UpstashApiOptions {
   /**
    * API key to use (overrides environment variable)
    */
-  apiKey?: string;
+  apiKey?: Secret;
 
   /**
    * Email to use (overrides environment variable)
@@ -180,8 +180,9 @@ export class UpstashApi {
    */
   constructor(options: UpstashApiOptions = {}) {
     this.baseUrl = "https://api.upstash.com/v2";
-    this.apiKey = options.apiKey || process.env.UPSTASH_API_KEY || "";
-    this.email = options.email || process.env.UPSTASH_EMAIL || "";
+    this.apiKey =
+      options.apiKey?.unencrypted ?? process.env.UPSTASH_API_KEY ?? "";
+    this.email = options.email ?? process.env.UPSTASH_EMAIL ?? "";
 
     if (!this.apiKey) {
       throw new Error("UPSTASH_API_KEY environment variable is required");
