@@ -45,6 +45,16 @@ export interface UpstashRedisProps {
    * Whether to enable eviction for the database
    */
   eviction?: boolean;
+
+  /**
+   * API key to use (overrides environment variable)
+   */
+  apiKey?: string;
+
+  /**
+   * Email to use (overrides environment variable)
+   */
+  email?: string;
 }
 
 /**
@@ -271,7 +281,10 @@ export const UpstashRedis = Resource(
     id: string,
     props: UpstashRedisProps,
   ): Promise<UpstashRedis> {
-    const api = new UpstashApi();
+    const api = new UpstashApi({
+      apiKey: props.apiKey,
+      email: props.email,
+    });
 
     if (this.phase === "delete") {
       const response = await api.delete(`/redis/database/${this.output.id}`);
