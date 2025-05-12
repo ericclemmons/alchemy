@@ -1,40 +1,74 @@
-# Upstash Redis
+---
+title: Managing Upstash Redis Databases with Alchemy
+description: Learn how to create and manage Upstash Redis databases with global replication.
+---
 
-Create and manage Upstash Redis databases with global replication.
+# UpstashRedis
 
-## Usage
+The UpstashRedis component lets you create and manage [Upstash Redis](https://upstash.com/redis) databases with global replication.
 
-```typescript
+## Minimal Example
+
+Create a basic Redis database in a single region.
+
+```ts
 import { UpstashRedis } from "alchemy/upstash";
 
-// Create a basic Redis database in us-east-1
 const redis = await UpstashRedis("my-redis", {
   name: "my-redis",
   primaryRegion: "us-east-1"
 });
+```
 
-// Create a Redis database with read replicas
+## With Read Replicas
+
+Create a Redis database with read replicas in multiple regions for global distribution.
+
+```ts
+import { UpstashRedis } from "alchemy/upstash";
+
 const redis = await UpstashRedis("my-redis", {
   name: "my-redis",
   primaryRegion: "us-east-1",
   readRegions: ["us-west-1", "us-west-2"]
 });
+```
 
-// Create a Redis database with a monthly budget
+## With Monthly Budget
+
+Create a Redis database with a specified monthly budget limit.
+
+```ts
+import { UpstashRedis } from "alchemy/upstash";
+
 const redis = await UpstashRedis("my-redis", {
   name: "my-redis",
   primaryRegion: "us-east-1",
   budget: 100
 });
+```
 
-// Create a Redis database with eviction enabled
+## With Eviction Enabled
+
+Create a Redis database with eviction enabled to automatically remove keys when memory is full.
+
+```ts
+import { UpstashRedis } from "alchemy/upstash";
+
 const redis = await UpstashRedis("my-redis", {
   name: "my-redis",
   primaryRegion: "us-east-1",
   eviction: true
 });
+```
 
-// Create a Redis database with custom API credentials
+## With Custom API Credentials
+
+Create a Redis database using custom API credentials instead of environment variables.
+
+```ts
+import { UpstashRedis } from "alchemy/upstash";
+
 const redis = await UpstashRedis("my-redis", {
   name: "my-redis",
   primaryRegion: "us-east-1",
@@ -42,41 +76,3 @@ const redis = await UpstashRedis("my-redis", {
   email: "custom@example.com"
 });
 ```
-
-## Configuration
-
-### Required Environment Variables
-
-- `UPSTASH_API_KEY`: Your Upstash API key
-- `UPSTASH_EMAIL`: Your Upstash account email
-
-### Properties
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `name` | `string` | Name of the database |
-| `primaryRegion` | `"us-east-1" \| "us-west-1" \| "us-west-2" \| "eu-west-1" \| "eu-central-1" \| "ap-southeast-1" \| "ap-southeast-2" \| "ap-northeast-1" \| "sa-east-1"` | Primary region for the database |
-| `readRegions` | `UpstashRegion[]` | Optional read regions for replication |
-| `budget` | `number` | Optional monthly budget in USD |
-| `eviction` | `boolean` | Optional flag to enable/disable eviction for the database |
-| `apiKey` | `Secret` | Optional API key (overrides environment variable) |
-| `email` | `string` | Optional email (overrides environment variable) |
-
-### Output
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `id` | `string` | Database ID |
-| `name` | `string` | Database name |
-| `databaseType` | `string` | Pricing model type |
-| `region` | `"global"` | Region (always "global") |
-| `port` | `number` | Database port |
-| `createdAt` | `number` | Creation timestamp |
-| `state` | `string` | Database state |
-| `password` | `Secret` | Database password |
-| `userEmail` | `string` | Owner email |
-| `endpoint` | `string` | Database endpoint |
-| `tls` | `boolean` | TLS enabled |
-| `restToken` | `Secret` | REST API token |
-| `readOnlyRestToken` | `Secret` | Read-only REST API token |
-| `eviction` | `boolean` | Whether eviction is enabled | 
