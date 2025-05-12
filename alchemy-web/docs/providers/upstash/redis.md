@@ -33,6 +33,14 @@ const redis = await UpstashRedis("my-redis", {
   primaryRegion: "us-east-1",
   eviction: true
 });
+
+// Create a Redis database with custom API credentials
+const redis = await UpstashRedis("my-redis", {
+  name: "my-redis",
+  primaryRegion: "us-east-1",
+  apiKey: alchemy.secret(process.env.CUSTOM_UPSTASH_API_KEY),
+  email: "custom@example.com"
+});
 ```
 
 ## Configuration
@@ -51,6 +59,8 @@ const redis = await UpstashRedis("my-redis", {
 | `readRegions` | `UpstashRegion[]` | Optional read regions for replication |
 | `budget` | `number` | Optional monthly budget in USD |
 | `eviction` | `boolean` | Optional flag to enable/disable eviction for the database |
+| `apiKey` | `Secret` | Optional API key (overrides environment variable) |
+| `email` | `string` | Optional email (overrides environment variable) |
 
 ### Output
 
