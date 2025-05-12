@@ -1,5 +1,7 @@
 ---
 order: 7
+title: Building Custom State Storage for Alchemy
+description: Learn how to create your own state storage backend for Alchemy to persist infrastructure state in databases, cloud storage, or custom solutions.
 ---
 
 # Custom State Store

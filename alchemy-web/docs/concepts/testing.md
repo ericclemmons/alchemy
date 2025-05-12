@@ -1,5 +1,7 @@
 ---
 order: 5
+title: Testing Infrastructure Resources in Alchemy
+description: Write effective tests for your infrastructure resources with Alchemy's testing utilities. Learn proper test setup, resource assertions, and automatic cleanup.
 ---
 
 # Testing
