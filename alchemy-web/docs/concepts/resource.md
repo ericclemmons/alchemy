@@ -1,5 +1,7 @@
 ---
 order: 1
+title: Resources - The Building Blocks of Alchemy
+description: Learn about Resources, the core building blocks of Alchemy. Understand how to create, update, and manage infrastructure with async functions in TypeScript.
 ---
 
 # Resource

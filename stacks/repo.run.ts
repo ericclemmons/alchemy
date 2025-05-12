@@ -9,8 +9,7 @@ import { AccountId, Role } from "../alchemy/src/aws";
 import { GitHubOIDCProvider } from "../alchemy/src/aws/oidc";
 import {
   AccountApiToken,
-  PermissionGroups,
-  R2Bucket,
+  R2Bucket
 } from "../alchemy/src/cloudflare";
 import { GitHubSecret, RepositoryEnvironment } from "../alchemy/src/github";
 import env, {
@@ -67,19 +66,14 @@ const testEnvironment = await RepositoryEnvironment("test environment", {
   },
 });
 
-const permissions = await PermissionGroups("cloudflare-permissions", {
-  // TODO: remove this once we have a way to get the account ID from the API
-  accountId: CLOUDFLARE_ACCOUNT_ID,
-});
-
 const accountAccessToken = await AccountApiToken("account-access-token", {
   name: "alchemy-account-access-token",
   policies: [
     {
       effect: "allow",
-      permissionGroups: [{ id: permissions["Workers R2 Storage Write"].id }],
+      permissionGroups: ["Workers R2 Storage Write"],
       resources: {
-        [`com.cloudflare.api.account.${CLOUDFLARE_ACCOUNT_ID}`]: "*",
+        "com.cloudflare.api.account": "*",
       },
     },
   ],
@@ -108,7 +102,7 @@ await Promise.all([
       owner: "sam-goodwin",
       repository: "alchemy",
       name,
-      value: typeof value === "string" ? alchemy.secret(value) : await value!,
+      value: typeof value === "string" ? alchemy.secret(value) : value!,
     };
     return [
       GitHubSecret(`github-secret-${name}`, {

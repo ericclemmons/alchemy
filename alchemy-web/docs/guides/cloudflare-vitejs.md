@@ -1,5 +1,7 @@
 ---
 order: 1
+title: Deploy Vite.js Apps to Cloudflare with Alchemy
+description: Step-by-step guide to deploying Vite.js React applications with API endpoints to Cloudflare Workers using Alchemy's Infrastructure-as-Code approach.
 ---
 
 # Vite

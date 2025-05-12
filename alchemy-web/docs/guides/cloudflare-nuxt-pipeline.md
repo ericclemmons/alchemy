@@ -1,5 +1,7 @@
 ---
 order: 4
+title: Deploy Nuxt 3 Apps to Cloudflare with Alchemy Pipeline
+description: Guide to deploying full-stack Nuxt 3 applications with data pipelines to Cloudflare. Learn how to set up R2, configure Nuxt, and use Cloudflare Pipeline.
 ---
 
 # Nuxt
