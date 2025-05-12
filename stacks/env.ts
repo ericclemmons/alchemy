@@ -16,7 +16,6 @@ export const NEON_API_KEY = await alchemy.secret.env.NEON_API_KEY;
 
 export const UPSTASH_API_KEY = await alchemy.secret.env.UPSTASH_API_KEY;
 
-
 export default {
   stage: "prod",
   phase:
