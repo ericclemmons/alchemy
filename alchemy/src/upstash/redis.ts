@@ -2,6 +2,8 @@ import { alchemy } from "../alchemy.js";
 import type { Context } from "../context.js";
 import { Resource } from "../resource.js";
 import type { Secret } from "../secret.js";
+import { UpstashApi } from "./api.js";
+import { UpstashError } from "./error.js";
 
 /**
  * Available regions for Upstash Redis databases
@@ -125,131 +127,6 @@ export interface UpstashRedis
 }
 
 /**
- * Options for Upstash API requests
- */
-export interface UpstashApiOptions {
-  /**
-   * API key to use (overrides environment variable)
-   */
-  apiKey?: Secret;
-
-  /**
-   * Email to use (overrides environment variable)
-   */
-  email?: string;
-}
-
-/**
- * Response from Upstash API for database operations
- */
-interface UpstashDatabaseResponse {
-  database_id: string;
-  database_name: string;
-  database_type: string;
-  region: "global";
-  type: string;
-  port: number;
-  creation_time: number;
-  state: string;
-  password: string;
-  user_email: string;
-  endpoint: string;
-  tls: boolean;
-  rest_token: string;
-  read_only_rest_token: string;
-  eviction: boolean;
-}
-
-/**
- * Minimal API client using raw fetch
- */
-export class UpstashApi {
-  /** Base URL for API */
-  readonly baseUrl: string;
-
-  /** API key */
-  readonly apiKey: string;
-
-  /** Email */
-  readonly email: string;
-
-  /**
-   * Create a new API client
-   *
-   * @param options API options
-   */
-  constructor(options: UpstashApiOptions = {}) {
-    this.baseUrl = "https://api.upstash.com/v2";
-    this.apiKey =
-      options.apiKey?.unencrypted ?? process.env.UPSTASH_API_KEY ?? "";
-    this.email = options.email ?? process.env.UPSTASH_EMAIL ?? "";
-
-    if (!this.apiKey) {
-      throw new Error("UPSTASH_API_KEY environment variable is required");
-    }
-
-    if (!this.email) {
-      throw new Error("UPSTASH_EMAIL environment variable is required");
-    }
-  }
-
-  /**
-   * Make a request to the API
-   *
-   * @param path API path (without base URL)
-   * @param init Fetch init options
-   * @returns Raw Response object from fetch
-   */
-  async fetch(path: string, init: RequestInit = {}): Promise<Response> {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      Authorization: `Basic ${btoa(`${this.email}:${this.apiKey}`)}`,
-    };
-
-    if (init.headers) {
-      const initHeaders = init.headers as Record<string, string>;
-      Object.keys(initHeaders).forEach((key) => {
-        headers[key] = initHeaders[key];
-      });
-    }
-
-    return fetch(`${this.baseUrl}${path}`, {
-      ...init,
-      headers,
-    });
-  }
-
-  /**
-   * Helper for GET requests
-   */
-  async get(path: string, init: RequestInit = {}): Promise<Response> {
-    return this.fetch(path, { ...init, method: "GET" });
-  }
-
-  /**
-   * Helper for POST requests
-   */
-  async post(
-    path: string,
-    body: any,
-    init: RequestInit = {},
-  ): Promise<Response> {
-    return this.fetch(path, {
-      ...init,
-      method: "POST",
-      body: JSON.stringify(body),
-    });
-  }
-
-  /**
-   * Helper for DELETE requests
-   */
-  async delete(path: string, init: RequestInit = {}): Promise<Response> {
-    return this.fetch(path, { ...init, method: "DELETE" });
-  }
-}
-
-/**
  * Create and manage Upstash Redis databases
  *
  * @example
@@ -288,14 +165,11 @@ export const UpstashRedis = Resource(
     });
 
     if (this.phase === "delete") {
-      const response = await api.delete(`/redis/database/${this.output.id}`);
-
-      if (!response.ok && response.status !== 404) {
-        throw new Error(`Error deleting database: ${response.statusText}`);
-      }
-
+      await deleteRedisDatabase(api, this.output.id);
       return this.destroy();
     }
+
+    const eviction = props.eviction ?? false;
 
     // @ts-ignore This is overridden during update/create
     let database: UpstashDatabaseResponse = {};
@@ -303,13 +177,7 @@ export const UpstashRedis = Resource(
     if (this.phase === "update") {
       // Update name if changed
       if (props.name !== this.output.name) {
-        const response = await api.post(`/redis/rename/${this.output.id}`, {
-          name: props.name,
-        });
-
-        if (!response.ok) {
-          throw new Error(`API error updating name: ${response.statusText}`);
-        }
+        await renameRedisDatabase(api, this.output.id, props.name);
       }
 
       // Update read regions if changed
@@ -317,16 +185,11 @@ export const UpstashRedis = Resource(
         JSON.stringify(props.readRegions) !==
         JSON.stringify(this.output.readRegions)
       ) {
-        const response = await api.post(
-          `/redis/update-regions/${this.output.id}`,
-          {
-            read_regions: props.readRegions || [],
-          },
+        await updateRedisReadRegions(
+          api,
+          this.output.id,
+          props.readRegions || [],
         );
-
-        if (!response.ok) {
-          throw new Error(`API error updating regions: ${response.statusText}`);
-        }
       }
 
       // Handle eviction setting if changed
@@ -334,34 +197,15 @@ export const UpstashRedis = Resource(
         props.eviction !== undefined &&
         props.eviction !== this.output.eviction
       ) {
-        const evictionEndpoint = props.eviction
-          ? "enable-eviction"
-          : "disable-eviction";
-
-        const response = await api.post(
-          `/redis/${evictionEndpoint}/${this.output.id}`,
-          {},
-        );
-
-        if (!response.ok) {
-          console.warn(
-            `API error updating eviction: ${response.statusText}. (Eviction may already be set)`,
-          );
-        }
+        await setRedisEviction(api, this.output.id, props.eviction);
       }
 
       // Get updated database info
-      const response = await api.get(`/redis/database/${this.output.id}`);
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.statusText}`);
-      }
-
-      database = await response.json();
+      database = await getRedisDatabase(api, this.output.id);
     }
 
     if (this.phase === "create") {
-      const response = await api.post("/redis/database", {
+      database = await createRedisDatabase(api, {
         budget: props.budget,
         name: props.name,
         primary_region: props.primaryRegion,
@@ -370,26 +214,8 @@ export const UpstashRedis = Resource(
         tls: true,
       });
 
-      if (!response.ok) {
-        throw new Error(`API error creating database: ${response.statusText}`);
-      }
-
-      database = await response.json();
-
-      // Handle eviction setting if provided
-      if (props.eviction !== undefined) {
-        const evictionEndpoint = props.eviction
-          ? "enable-eviction"
-          : "disable-eviction";
-
-        const response = await api.post(
-          `/redis/${evictionEndpoint}/${database.database_id}`,
-          {},
-        );
-
-        if (!response.ok) {
-          throw new Error(`API error setting eviction: ${response.statusText}`);
-        }
+      if (eviction) {
+        await setRedisEviction(api, database.database_id, eviction);
       }
     }
 
@@ -410,7 +236,186 @@ export const UpstashRedis = Resource(
       primaryRegion: props.primaryRegion,
       readRegions: props.readRegions,
       budget: props.budget,
-      eviction: props.eviction,
+      eviction: props.eviction ?? false,
     });
   },
 );
+
+/**
+ * Response from Upstash API for database operations
+ */
+interface UpstashDatabaseResponse {
+  database_id: string;
+  database_name: string;
+  database_type: string;
+  region: "global";
+  type: string;
+  port: number;
+  creation_time: number;
+  state: string;
+  password: string;
+  user_email: string;
+  endpoint: string;
+  tls: boolean;
+  rest_token: string;
+  read_only_rest_token: string;
+  eviction: boolean;
+  read_regions?: UpstashRegion[];
+}
+
+/**
+ * Parameters for creating a Redis database
+ */
+export interface CreateRedisDatabaseParams {
+  name: string;
+  primary_region: UpstashRegion;
+  read_regions?: UpstashRegion[];
+  region: "global";
+  tls: boolean;
+  budget?: number;
+}
+
+/**
+ * Delete a Redis database
+ *
+ * @param api Upstash API client
+ * @param databaseId ID of the database to delete
+ */
+export async function deleteRedisDatabase(
+  api: UpstashApi,
+  databaseId: string,
+): Promise<void> {
+  const response = await api.delete(`/redis/database/${databaseId}`);
+
+  if (!response.ok && response.status !== 404) {
+    throw new UpstashError(
+      `Error deleting database: ${response.statusText}`,
+      response.status,
+      response,
+    );
+  }
+}
+
+/**
+ * Rename a Redis database
+ *
+ * @param api Upstash API client
+ * @param databaseId ID of the database to rename
+ * @param name New name for the database
+ */
+export async function renameRedisDatabase(
+  api: UpstashApi,
+  databaseId: string,
+  name: string,
+): Promise<void> {
+  const response = await api.post(`/redis/rename/${databaseId}`, {
+    name,
+  });
+
+  if (!response.ok) {
+    throw new UpstashError(
+      `API error updating name: ${response.statusText}`,
+      response.status,
+      response,
+    );
+  }
+}
+
+/**
+ * Update read regions for a Redis database
+ *
+ * @param api Upstash API client
+ * @param databaseId ID of the database to update
+ * @param readRegions Array of read regions
+ */
+export async function updateRedisReadRegions(
+  api: UpstashApi,
+  databaseId: string,
+  readRegions: UpstashRegion[],
+): Promise<void> {
+  const response = await api.post(`/redis/update-regions/${databaseId}`, {
+    read_regions: readRegions,
+  });
+
+  if (!response.ok) {
+    throw new UpstashError(
+      `API error updating regions: ${response.statusText}`,
+      response.status,
+      response,
+    );
+  }
+}
+
+/**
+ * Enable or disable eviction for a Redis database
+ *
+ * @param api Upstash API client
+ * @param databaseId ID of the database to update
+ * @param enable Whether to enable or disable eviction
+ */
+export async function setRedisEviction(
+  api: UpstashApi,
+  databaseId: string,
+  enable: boolean,
+): Promise<void> {
+  const evictionEndpoint = enable ? "enable-eviction" : "disable-eviction";
+
+  const response = await api.post(
+    `/redis/${evictionEndpoint}/${databaseId}`,
+    {},
+  );
+
+  if (!response.ok) {
+    console.warn(
+      `API error updating eviction (status: ${response.status}): ${response.statusText}. (Eviction may already be set)`,
+    );
+  }
+}
+
+/**
+ * Get information about a Redis database
+ *
+ * @param api Upstash API client
+ * @param databaseId ID of the database to get information about
+ * @returns Database information
+ */
+export async function getRedisDatabase(
+  api: UpstashApi,
+  databaseId: string,
+): Promise<UpstashDatabaseResponse> {
+  const response = await api.get(`/redis/database/${databaseId}`);
+
+  if (!response.ok) {
+    throw new UpstashError(
+      `API error: ${response.statusText}`,
+      response.status,
+      response,
+    );
+  }
+
+  return await response.json();
+}
+
+/**
+ * Create a new Redis database
+ *
+ * @param api Upstash API client
+ * @param params Parameters for the new database
+ * @returns Created database information
+ */
+export async function createRedisDatabase(
+  api: UpstashApi,
+  params: CreateRedisDatabaseParams,
+): Promise<UpstashDatabaseResponse> {
+  const response = await api.post("/redis/database", params);
+
+  if (!response.ok) {
+    throw new UpstashError(
+      `API error creating database: ${response.statusText}`,
+      response.status,
+      response,
+    );
+  }
+
+  return await response.json();
+}

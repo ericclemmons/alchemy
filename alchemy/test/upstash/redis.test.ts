@@ -1,7 +1,8 @@
 import { describe, expect } from "bun:test";
 import { alchemy } from "../../src/alchemy.js";
 import { destroy } from "../../src/destroy.js";
-import { UpstashApi, UpstashRedis } from "../../src/upstash/redis.js";
+import { UpstashApi, UpstashError, UpstashRedis } from "../../src/upstash";
+import { getRedisDatabase } from "../../src/upstash/redis.js";
 import { BRANCH_PREFIX } from "../util.js";
 // must import this or else alchemy.test won't exist
 import "../../src/test/bun.js";
@@ -26,7 +27,6 @@ describe("UpstashRedis Resource", () => {
       expect(redis.id).toBeTruthy();
       expect(redis.name).toEqual(testId);
       expect(redis.primaryRegion).toEqual("us-east-1");
-      expect(redis.eviction).toEqual(true);
       expect(redis.databaseType).toBeTruthy();
       expect(redis.region).toEqual("global");
       expect(redis.port).toBeGreaterThan(0);
@@ -38,14 +38,12 @@ describe("UpstashRedis Resource", () => {
       expect(redis.tls).toEqual(true);
       expect(redis.restToken).toBeTruthy();
       expect(redis.readOnlyRestToken).toBeTruthy();
+      expect(redis.eviction).toBe(true);
 
-      // Verify database was created by querying the API directly
-      const getResponse = await api.get(`/redis/database/${redis.id}`);
-      expect(getResponse.status).toEqual(200);
-
-      const responseData = await getResponse.json();
-      expect(responseData.database_name).toEqual(testId);
-      expect(responseData.eviction).toEqual(true);
+      // Verify database was created by querying the API directly using the extracted function
+      const databaseData = await getRedisDatabase(api, redis.id);
+      expect(databaseData.database_name).toEqual(testId);
+      expect(databaseData.eviction).toEqual(true);
 
       // Update the database
       redis = await UpstashRedis(testId, {
@@ -58,7 +56,6 @@ describe("UpstashRedis Resource", () => {
       expect(redis.id).toEqual(redis.id);
       expect(redis.name).toEqual(`${testId}-updated`);
       expect(redis.readRegions).toEqual(["us-west-1"]);
-      expect(redis.eviction).toEqual(false);
       expect(redis.primaryRegion).toEqual("us-east-1");
       expect(redis.databaseType).toBeTruthy();
       expect(redis.region).toEqual("global");
@@ -71,10 +68,10 @@ describe("UpstashRedis Resource", () => {
       expect(redis.tls).toEqual(true);
       expect(redis.restToken).toBeTruthy();
       expect(redis.readOnlyRestToken).toBeTruthy();
+      expect(redis.eviction).toEqual(false);
 
-      // Verify database was updated
-      const getUpdatedResponse = await api.get(`/redis/database/${redis.id}`);
-      const updatedData = await getUpdatedResponse.json();
+      // Verify database was updated using the extracted function
+      const updatedData = await getRedisDatabase(api, redis.id);
       expect(updatedData.database_name).toEqual(`${testId}-updated`);
       expect(updatedData.read_regions).toEqual(["us-west-1"]);
       expect(updatedData.eviction).toEqual(false);
@@ -85,9 +82,17 @@ describe("UpstashRedis Resource", () => {
       // Always clean up, even if test assertions fail
       await destroy(scope);
 
-      // Verify database was deleted
-      const getDeletedResponse = await api.get(`/redis/database/${redis?.id}`);
-      expect(getDeletedResponse.status).toEqual(404);
+      // Verify database was deleted by checking if it returns a 404
+      try {
+        await getRedisDatabase(api, redis?.id || "");
+        // If we reach here, the database still exists
+        throw new Error("Database was not deleted");
+      } catch (error) {
+        // Expected to fail with a 404 error
+        expect(error).toBeInstanceOf(UpstashError);
+        const upstashError = error as UpstashError;
+        expect(upstashError.statusCode).toEqual(404);
+      }
     }
   });
 });
