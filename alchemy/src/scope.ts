@@ -62,16 +62,17 @@ export class Scope {
       throw new Error("Scope name is required when creating a child scope");
     }
     this.password = options.password ?? this.parent?.password;
-    this.stateStore =
-      options.stateStore ??
-      this.parent?.stateStore ??
-      ((scope) => new FileSystemStateStore(scope));
-    this.state = this.stateStore(this);
     const phase = options.phase ?? this.parent?.phase;
     if (phase === undefined) {
       throw new Error("Phase is required");
     }
     this.phase = phase;
+
+    this.stateStore =
+      options.stateStore ??
+      this.parent?.stateStore ??
+      ((scope) => new FileSystemStateStore(scope));
+    this.state = this.stateStore(this);
   }
 
   public async delete(resourceID: ResourceID) {
