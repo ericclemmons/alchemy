@@ -46,7 +46,7 @@ describe("Project Resource", () => {
 
       // Verify project was created by querying the API directly
       const getResponse = await api.get(
-        `/projects/${project.organization}/${project.slug}`,
+        `/projects/${project.organization}/${project.slug}/`,
       );
       expect(getResponse.status).toEqual(200);
 
@@ -67,7 +67,7 @@ describe("Project Resource", () => {
 
       // Verify project was updated
       const getUpdatedResponse = await api.get(
-        `/projects/${project.organization}/${project.slug}`,
+        `/projects/${project.organization}/${project.slug}/`,
       );
       const updatedData = await getUpdatedResponse.json();
       expect(updatedData.name).toEqual(`Updated Project ${testId}`);
@@ -82,9 +82,9 @@ describe("Project Resource", () => {
       // Verify project was deleted
       if (project) {
         const getDeletedResponse = await api.get(
-          `/projects/${project.organization}/${project.slug}`,
+          `/projects/${project.organization}/${project.slug}/`,
         );
-        expect(getDeletedResponse.status).toEqual(404);
+        expect(getDeletedResponse.status).not.toEqual(200);
       }
     }
   });

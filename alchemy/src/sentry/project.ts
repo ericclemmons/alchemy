@@ -257,7 +257,7 @@ export const Project = Resource(
       try {
         if (this.output?.id) {
           const response = await api.delete(
-            `/projects/${props.organization}/${this.output.slug || this.output.id}`,
+            `/projects/${props.organization}/${this.output.slug || this.output.id}/`,
           );
           if (!response.ok && response.status !== 404) {
             console.error("Error deleting project:", response.statusText);
@@ -273,12 +273,15 @@ export const Project = Resource(
 
         if (this.phase === "update" && this.output?.id) {
           response = await api.put(
-            `/projects/${props.organization}/${this.output.slug || this.output.id}`,
+            `/projects/${props.organization}/${this.output.slug || this.output.id}/`,
             props,
           );
         } else {
           try {
-            response = await api.post(`/projects/${props.organization}`, props);
+            response = await api.post(
+              `/teams/${props.organization}/${props.team}/projects/`,
+              props,
+            );
           } catch (error) {
             // Check if this is a "project already exists" error and adopt is enabled
             if (
@@ -301,7 +304,7 @@ export const Project = Resource(
                 );
               }
               response = await api.get(
-                `/projects/${props.organization}/${existingProject.slug}`,
+                `/projects/${props.organization}/${existingProject.slug}/`,
               );
             } else {
               throw error;

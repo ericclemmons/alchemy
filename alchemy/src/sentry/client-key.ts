@@ -154,7 +154,7 @@ export const ClientKey = Resource(
       try {
         if (this.output?.id) {
           const response = await api.delete(
-            `/projects/${props.organization}/${props.project}/keys/${this.output.id}`,
+            `/projects/${props.organization}/${props.project}/keys/${this.output.id}/`,
           );
           if (!response.ok && response.status !== 404) {
             console.error("Error deleting client key:", response.statusText);
@@ -170,13 +170,13 @@ export const ClientKey = Resource(
 
         if (this.phase === "update" && this.output?.id) {
           response = await api.put(
-            `/projects/${props.organization}/${props.project}/keys/${this.output.id}`,
+            `/projects/${props.organization}/${props.project}/keys/${this.output.id}/`,
             props,
           );
         } else {
           try {
             response = await api.post(
-              `/projects/${props.organization}/${props.project}/keys`,
+              `/projects/${props.organization}/${props.project}/keys/`,
               props,
             );
           } catch (error) {
@@ -203,7 +203,7 @@ export const ClientKey = Resource(
                 );
               }
               response = await api.get(
-                `/projects/${props.organization}/${props.project}/keys/${existingKey.id}`,
+                `/projects/${props.organization}/${props.project}/keys/${existingKey.id}/`,
               );
             } else {
               throw error;
@@ -250,7 +250,7 @@ async function findClientKeyByName(
   project: string,
   name: string,
 ): Promise<{ id: string } | null> {
-  const response = await api.get(`/projects/${organization}/${project}/keys`);
+  const response = await api.get(`/projects/${organization}/${project}/keys/`);
   if (!response.ok) {
     throw new Error(`API error: ${response.statusText}`);
   }
