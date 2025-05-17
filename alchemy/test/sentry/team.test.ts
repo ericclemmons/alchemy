@@ -34,7 +34,7 @@ describe("Team Resource", () => {
 
       // Verify team was created by querying the API directly
       const getResponse = await api.get(
-        `/teams/${team.organization}/${team.slug}`,
+        `/teams/${team.organization}/${team.slug}/`,
       );
       expect(getResponse.status).toEqual(200);
 
@@ -53,7 +53,7 @@ describe("Team Resource", () => {
 
       // Verify team was updated
       const getUpdatedResponse = await api.get(
-        `/teams/${team.organization}/${team.slug}`,
+        `/teams/${team.organization}/${team.slug}/`,
       );
       const updatedData = await getUpdatedResponse.json();
       expect(updatedData.name).toEqual(`Updated Team ${testId}`);
@@ -68,7 +68,7 @@ describe("Team Resource", () => {
       // Verify team was deleted
       if (team) {
         const getDeletedResponse = await api.get(
-          `/teams/${team.organization}/${team.slug}`,
+          `/teams/${team.organization}/${team.slug}/`,
         );
         expect(getDeletedResponse.status).toEqual(404);
       }

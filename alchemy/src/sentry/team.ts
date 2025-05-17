@@ -113,7 +113,7 @@ export const Team = Resource(
       try {
         if (this.output?.id) {
           const response = await api.delete(
-            `/organizations/${props.organization}/teams/${this.output.slug || this.output.id}`,
+            `/teams/${props.organization}/${this.output.slug || this.output.id}/`,
           );
           if (!response.ok && response.status !== 404) {
             console.error("Error deleting team:", response.statusText);
@@ -129,7 +129,7 @@ export const Team = Resource(
 
         if (this.phase === "update" && this.output?.id) {
           response = await api.put(
-            `/organizations/${props.organization}/teams/${this.output.slug || this.output.id}`,
+            `/teams/${props.organization}/${this.output.slug || this.output.id}/`,
             props,
           );
         } else {
@@ -202,7 +202,7 @@ async function findTeamBySlug(
   organization: string,
   slug: string,
 ): Promise<{ id: string; slug: string } | null> {
-  const response = await api.get(`/organizations/${organization}/teams`);
+  const response = await api.get(`/teams/${organization}/${slug}/`);
   if (!response.ok) {
     throw new Error(`API error: ${response.statusText}`);
   }
