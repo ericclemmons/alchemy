@@ -30,6 +30,11 @@ export interface ProjectProps {
    * The team slug that owns the project
    */
   team: string;
+
+  /**
+   * The organization ID or slug that owns the project
+   */
+  organization: string;
 }
 
 /**
@@ -244,7 +249,7 @@ export const Project = Resource(
       try {
         if (this.output?.id) {
           const response = await api.delete(
-            `/projects/${api.organizationId}/${this.output.slug || this.output.id}`,
+            `/projects/${props.organization}/${this.output.slug || this.output.id}`,
           );
           if (!response.ok && response.status !== 404) {
             console.error("Error deleting project:", response.statusText);
@@ -260,14 +265,11 @@ export const Project = Resource(
 
         if (this.phase === "update" && this.output?.id) {
           response = await api.put(
-            `/projects/${api.organizationId}/${this.output.slug || this.output.id}`,
+            `/projects/${props.organization}/${this.output.slug || this.output.id}`,
             props,
           );
         } else {
-          response = await api.post(
-            `/teams/${api.organizationId}/${props.team}/projects`,
-            props,
-          );
+          response = await api.post(`/projects/${props.organization}`, props);
         }
 
         if (!response.ok) {

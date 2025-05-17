@@ -6,11 +6,6 @@ export interface SentryApiOptions {
    * API token to use (overrides environment variable)
    */
   apiToken?: string;
-
-  /**
-   * Organization ID or slug (overrides environment variable)
-   */
-  organizationId?: string;
 }
 
 /**
@@ -23,9 +18,6 @@ export class SentryApi {
   /** API token */
   readonly apiToken: string;
 
-  /** Organization ID */
-  readonly organizationId: string;
-
   /**
    * Create a new API client
    *
@@ -34,8 +26,6 @@ export class SentryApi {
   constructor(options: SentryApiOptions = {}) {
     this.baseUrl = "https://sentry.io/api/0";
     this.apiToken = options.apiToken || process.env.SENTRY_AUTH_TOKEN || "";
-    this.organizationId =
-      options.organizationId || process.env.SENTRY_ORGANIZATION_ID || "";
 
     if (!this.apiToken) {
       throw new Error("SENTRY_AUTH_TOKEN environment variable is required");

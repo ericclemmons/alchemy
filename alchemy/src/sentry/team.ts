@@ -15,6 +15,11 @@ export interface TeamProps {
    * Uniquely identifies a team and is used for the interface
    */
   slug?: string;
+
+  /**
+   * The organization ID or slug that owns the team
+   */
+  organization: string;
 }
 
 /**
@@ -100,7 +105,7 @@ export const Team = Resource(
       try {
         if (this.output?.id) {
           const response = await api.delete(
-            `/teams/${api.organizationId}/${this.output.slug || this.output.id}`,
+            `/teams/${props.organization}/${this.output.slug || this.output.id}`,
           );
           if (!response.ok && response.status !== 404) {
             console.error("Error deleting team:", response.statusText);
@@ -116,11 +121,11 @@ export const Team = Resource(
 
         if (this.phase === "update" && this.output?.id) {
           response = await api.put(
-            `/teams/${api.organizationId}/${this.output.slug || this.output.id}`,
+            `/teams/${props.organization}/${this.output.slug || this.output.id}`,
             props,
           );
         } else {
-          response = await api.post(`/teams/${api.organizationId}`, props);
+          response = await api.post(`/teams/${props.organization}`, props);
         }
 
         if (!response.ok) {

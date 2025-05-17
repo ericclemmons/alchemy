@@ -35,6 +35,11 @@ export interface ClientKeyProps {
    * The project slug that owns the key
    */
   project: string;
+
+  /**
+   * The organization ID or slug that owns the key
+   */
+  organization: string;
 }
 
 /**
@@ -141,7 +146,7 @@ export const ClientKey = Resource(
       try {
         if (this.output?.id) {
           const response = await api.delete(
-            `/projects/${api.organizationId}/${this.output.projectId}/keys/${this.output.id}`,
+            `/projects/${props.organization}/${props.project}/keys/${this.output.id}`,
           );
           if (!response.ok && response.status !== 404) {
             console.error("Error deleting client key:", response.statusText);
@@ -157,12 +162,12 @@ export const ClientKey = Resource(
 
         if (this.phase === "update" && this.output?.id) {
           response = await api.put(
-            `/projects/${api.organizationId}/${this.output.projectId}/keys/${this.output.id}`,
+            `/projects/${props.organization}/${props.project}/keys/${this.output.id}`,
             props,
           );
         } else {
           response = await api.post(
-            `/projects/${api.organizationId}/${props.project}/keys`,
+            `/projects/${props.organization}/${props.project}/keys`,
             props,
           );
         }
