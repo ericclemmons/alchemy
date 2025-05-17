@@ -56,7 +56,7 @@ describe("ClientKey Resource", () => {
 
       // Verify key was created by querying the API directly
       const getResponse = await api.get(
-        `/projects/${key.organization}/${key.project}/keys/${key.id}/`
+        `/projects/${key.organization}/${key.project}/keys/${key.id}/`,
       );
       expect(getResponse.status).toEqual(200);
 
@@ -75,7 +75,7 @@ describe("ClientKey Resource", () => {
 
       // Verify key was updated
       const getUpdatedResponse = await api.get(
-        `/projects/${key.organization}/${key.project}/keys/${key.id}/`
+        `/projects/${key.organization}/${key.project}/keys/${key.id}/`,
       );
       const updatedData = await getUpdatedResponse.json();
       expect(updatedData.name).toEqual(`Updated Key ${testId}`);
@@ -90,7 +90,7 @@ describe("ClientKey Resource", () => {
       // Verify key was deleted
       if (key) {
         const getDeletedResponse = await api.get(
-          `/projects/${key.organization}/${key.project}/keys/${key.id}/`
+          `/projects/${key.organization}/${key.project}/keys/${key.id}/`,
         );
         expect(getDeletedResponse.status).not.toEqual(200);
       }
