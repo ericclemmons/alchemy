@@ -35,6 +35,14 @@ export interface ProjectProps {
    * The organization ID or slug that owns the project
    */
   organization: string;
+
+  /**
+   * Whether to adopt an existing project with the same slug if it exists
+   * If true and a project with the same slug exists, it will be adopted rather than creating a new one
+   *
+   * @default false
+   */
+  adopt?: boolean;
 }
 
 /**
@@ -269,7 +277,36 @@ export const Project = Resource(
             props,
           );
         } else {
-          response = await api.post(`/projects/${props.organization}`, props);
+          try {
+            response = await api.post(`/projects/${props.organization}`, props);
+          } catch (error) {
+            // Check if this is a "project already exists" error and adopt is enabled
+            if (
+              props.adopt &&
+              error instanceof Error &&
+              error.message.includes("already exists")
+            ) {
+              console.log(
+                `Project '${props.slug || props.name}' already exists, adopting it`,
+              );
+              // Find the existing project by slug
+              const existingProject = await findProjectBySlug(
+                api,
+                props.organization,
+                props.slug || props.name,
+              );
+              if (!existingProject) {
+                throw new Error(
+                  `Failed to find existing project '${props.slug || props.name}' for adoption`,
+                );
+              }
+              response = await api.get(
+                `/projects/${props.organization}/${existingProject.slug}`,
+              );
+            } else {
+              throw error;
+            }
+          }
         }
 
         if (!response.ok) {
@@ -324,3 +361,24 @@ export const Project = Resource(
     }
   },
 );
+
+/**
+ * Find a project by slug
+ */
+async function findProjectBySlug(
+  api: SentryApi,
+  organization: string,
+  slug: string,
+): Promise<{ id: string; slug: string } | null> {
+  const response = await api.get(`/projects/${organization}`);
+  if (!response.ok) {
+    throw new Error(`API error: ${response.statusText}`);
+  }
+
+  const projects = (await response.json()) as Array<{
+    id: string;
+    slug: string;
+  }>;
+  const project = projects.find((p) => p.slug === slug);
+  return project ? { id: project.id, slug: project.slug } : null;
+}

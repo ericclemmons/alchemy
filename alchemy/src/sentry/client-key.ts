@@ -40,6 +40,14 @@ export interface ClientKeyProps {
    * The organization ID or slug that owns the key
    */
   organization: string;
+
+  /**
+   * Whether to adopt an existing key with the same name if it exists
+   * If true and a key with the same name exists, it will be adopted rather than creating a new one
+   *
+   * @default false
+   */
+  adopt?: boolean;
 }
 
 /**
@@ -166,10 +174,41 @@ export const ClientKey = Resource(
             props,
           );
         } else {
-          response = await api.post(
-            `/projects/${props.organization}/${props.project}/keys`,
-            props,
-          );
+          try {
+            response = await api.post(
+              `/projects/${props.organization}/${props.project}/keys`,
+              props,
+            );
+          } catch (error) {
+            // Check if this is a "key already exists" error and adopt is enabled
+            if (
+              props.adopt &&
+              error instanceof Error &&
+              error.message.includes("already exists") &&
+              props.name
+            ) {
+              console.log(
+                `Client key '${props.name}' already exists, adopting it`,
+              );
+              // Find the existing key by name
+              const existingKey = await findClientKeyByName(
+                api,
+                props.organization,
+                props.project,
+                props.name,
+              );
+              if (!existingKey) {
+                throw new Error(
+                  `Failed to find existing client key '${props.name}' for adoption`,
+                );
+              }
+              response = await api.get(
+                `/projects/${props.organization}/${props.project}/keys/${existingKey.id}`,
+              );
+            } else {
+              throw error;
+            }
+          }
         }
 
         if (!response.ok) {
@@ -201,3 +240,22 @@ export const ClientKey = Resource(
     }
   },
 );
+
+/**
+ * Find a client key by name
+ */
+async function findClientKeyByName(
+  api: SentryApi,
+  organization: string,
+  project: string,
+  name: string,
+): Promise<{ id: string } | null> {
+  const response = await api.get(`/projects/${organization}/${project}/keys`);
+  if (!response.ok) {
+    throw new Error(`API error: ${response.statusText}`);
+  }
+
+  const keys = (await response.json()) as Array<{ id: string; name: string }>;
+  const key = keys.find((k) => k.name === name);
+  return key ? { id: key.id } : null;
+}

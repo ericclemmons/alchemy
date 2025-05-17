@@ -20,6 +20,14 @@ export interface TeamProps {
    * The organization ID or slug that owns the team
    */
   organization: string;
+
+  /**
+   * Whether to adopt an existing team with the same slug if it exists
+   * If true and a team with the same slug exists, it will be adopted rather than creating a new one
+   *
+   * @default false
+   */
+  adopt?: boolean;
 }
 
 /**
@@ -125,7 +133,36 @@ export const Team = Resource(
             props,
           );
         } else {
-          response = await api.post(`/teams/${props.organization}`, props);
+          try {
+            response = await api.post(`/teams/${props.organization}`, props);
+          } catch (error) {
+            // Check if this is a "team already exists" error and adopt is enabled
+            if (
+              props.adopt &&
+              error instanceof Error &&
+              error.message.includes("already exists")
+            ) {
+              console.log(
+                `Team '${props.slug || props.name}' already exists, adopting it`,
+              );
+              // Find the existing team by slug
+              const existingTeam = await findTeamBySlug(
+                api,
+                props.organization,
+                props.slug || props.name,
+              );
+              if (!existingTeam) {
+                throw new Error(
+                  `Failed to find existing team '${props.slug || props.name}' for adoption`,
+                );
+              }
+              response = await api.get(
+                `/teams/${props.organization}/${existingTeam.slug}`,
+              );
+            } else {
+              throw error;
+            }
+          }
         }
 
         if (!response.ok) {
@@ -153,3 +190,21 @@ export const Team = Resource(
     }
   },
 );
+
+/**
+ * Find a team by slug
+ */
+async function findTeamBySlug(
+  api: SentryApi,
+  organization: string,
+  slug: string,
+): Promise<{ id: string; slug: string } | null> {
+  const response = await api.get(`/teams/${organization}`);
+  if (!response.ok) {
+    throw new Error(`API error: ${response.statusText}`);
+  }
+
+  const teams = (await response.json()) as Array<{ id: string; slug: string }>;
+  const team = teams.find((t) => t.slug === slug);
+  return team ? { id: team.id, slug: team.slug } : null;
+}
