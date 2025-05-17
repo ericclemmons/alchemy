@@ -113,7 +113,7 @@ export const Team = Resource(
       try {
         if (this.output?.id) {
           const response = await api.delete(
-            `/teams/${props.organization}/${this.output.slug || this.output.id}`,
+            `/organizations/${props.organization}/teams/${this.output.slug || this.output.id}`,
           );
           if (!response.ok && response.status !== 404) {
             console.error("Error deleting team:", response.statusText);
@@ -129,12 +129,15 @@ export const Team = Resource(
 
         if (this.phase === "update" && this.output?.id) {
           response = await api.put(
-            `/teams/${props.organization}/${this.output.slug || this.output.id}`,
+            `/organizations/${props.organization}/teams/${this.output.slug || this.output.id}`,
             props,
           );
         } else {
           try {
-            response = await api.post(`/teams/${props.organization}`, props);
+            response = await api.post(
+              `/organizations/${props.organization}/teams/`,
+              props,
+            );
           } catch (error) {
             // Check if this is a "team already exists" error and adopt is enabled
             if (
@@ -157,7 +160,7 @@ export const Team = Resource(
                 );
               }
               response = await api.get(
-                `/teams/${props.organization}/${existingTeam.slug}`,
+                `/organizations/${props.organization}/teams/${existingTeam.slug}/`,
               );
             } else {
               throw error;
@@ -199,7 +202,7 @@ async function findTeamBySlug(
   organization: string,
   slug: string,
 ): Promise<{ id: string; slug: string } | null> {
-  const response = await api.get(`/teams/${organization}`);
+  const response = await api.get(`/organizations/${organization}/teams`);
   if (!response.ok) {
     throw new Error(`API error: ${response.statusText}`);
   }
