@@ -85,11 +85,17 @@ export class VercelApi {
       delete headers["Content-Type"];
     }
 
-    // Make the request
-    return fetch(`${this.baseUrl}${path}`, {
+    const response = await fetch(`${this.baseUrl}${path}`, {
       ...init,
       headers,
     });
+
+    if (!response.ok) {
+      const { error } = (await response.json()) as { error: Error };
+      throw new Error(`API error: ${response.statusText}`, { cause: error });
+    }
+
+    return response;
   }
 
   /**
@@ -131,8 +137,11 @@ export class VercelApi {
     body: any,
     init: RequestInit = {},
   ): Promise<Response> {
-    const requestBody = body instanceof FormData ? body : JSON.stringify(body);
-    return this.fetch(path, { ...init, method: "PATCH", body: requestBody });
+    return this.fetch(path, {
+      ...init,
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
   }
 
   /**
