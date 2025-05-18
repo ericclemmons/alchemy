@@ -1,6 +1,7 @@
 import type { Context } from "../context.js";
 import { Resource } from "../resource.js";
-import { SentryApi, type SentryApiOptions } from "./api.js";
+import type { Secret } from "../secret.js";
+import { SentryApi } from "./api.js";
 
 /**
  * Properties for creating or updating a ClientKey
@@ -44,7 +45,7 @@ export interface ClientKeyProps {
   /**
    * Auth token to use (overrides environment variable)
    */
-  authToken?: SentryApiOptions["authToken"];
+  authToken?: Secret;
 
   /**
    * Whether to adopt an existing key with the same name if it exists

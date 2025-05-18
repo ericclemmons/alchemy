@@ -1,3 +1,6 @@
+import { alchemy } from "../alchemy.js";
+import type { Secret } from "../secret.js";
+
 /**
  * Options for Sentry API requests
  */
@@ -5,7 +8,7 @@ export interface SentryApiOptions {
   /**
    * Auth token to use (overrides environment variable)
    */
-  authToken?: string;
+  authToken?: Secret;
 }
 
 /**
@@ -16,7 +19,7 @@ export class SentryApi {
   readonly baseUrl: string;
 
   /** Auth token */
-  readonly authToken: string;
+  readonly authToken: Secret;
 
   /**
    * Create a new API client
@@ -25,9 +28,10 @@ export class SentryApi {
    */
   constructor(options: SentryApiOptions = {}) {
     this.baseUrl = "https://sentry.io/api/0";
-    this.authToken = options.authToken || process.env.SENTRY_AUTH_TOKEN || "";
+    this.authToken =
+      options.authToken ?? alchemy.secret(process.env.SENTRY_AUTH_TOKEN || "");
 
-    if (!this.authToken) {
+    if (!this.authToken.unencrypted) {
       throw new Error("SENTRY_AUTH_TOKEN environment variable is required");
     }
   }
@@ -42,7 +46,7 @@ export class SentryApi {
   async fetch(path: string, init: RequestInit = {}): Promise<Response> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${this.authToken}`,
+      Authorization: `Bearer ${this.authToken.unencrypted}`,
     };
 
     if (init.headers) {
