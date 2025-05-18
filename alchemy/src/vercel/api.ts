@@ -91,8 +91,19 @@ export class VercelApi {
     });
 
     if (!response.ok) {
-      const { error } = (await response.json()) as { error: Error };
-      throw new Error(`API error: ${response.statusText}`, { cause: error });
+      let error = new Error(`API error: ${response.statusText}`, {
+        cause: response,
+      });
+
+      try {
+        // const { error } = (await response.json()) as { error: Error };
+        error = Object.assign(
+          new Error(response.statusText, { cause: response }),
+          ((await response.json()) as { error: Error })?.error,
+        );
+      } finally {
+        throw error;
+      }
     }
 
     return response;

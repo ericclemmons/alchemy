@@ -251,43 +251,46 @@ export const Project = Resource(
     id: string,
     props: ProjectProps & { accessToken?: Secret },
   ): Promise<Project> {
-    const api = await createVercelApi({
-      baseUrl: "https://api.vercel.com/v11",
-      accessToken: props.accessToken,
-    });
+    switch (this.phase) {
+      case "delete": {
+        const api = await createVercelApi({
+          baseUrl: "https://api.vercel.com/v9",
+          accessToken: props.accessToken,
+        });
 
-    if (this.phase === "delete") {
-      try {
-        if (this.output?.id) {
-          // Delete project
-          const deleteResponse = await api.delete(
-            `/projects/${this.output.id}`,
-          );
+        try {
+          if (this.output?.id) {
+            const deleteResponse = await api.delete(
+              `/projects/${this.output.id}`,
+            );
 
-          // Check response status directly instead of relying on exceptions
-          if (!deleteResponse.ok && deleteResponse.status !== 404) {
-            console.error("Error deleting project:", deleteResponse.statusText);
+            if (!deleteResponse.ok && deleteResponse.status !== 404) {
+              console.error(
+                "Error deleting project:",
+                deleteResponse.statusText,
+              );
+            }
           }
+        } catch (error) {
+          console.error("Error deleting project:", error);
         }
-      } catch (error) {
-        console.error("Error deleting project:", error);
+        return this.destroy();
       }
 
-      // Return destroyed state
-      return this.destroy();
-    } else {
-      try {
-        let response;
+      case "update": {
+        const api = await createVercelApi({
+          baseUrl: "https://api.vercel.com/v9",
+          accessToken: props.accessToken,
+        });
 
-        if (this.phase === "update" && this.output?.id) {
-          // Update existing project
-          response = await api.patch(`/projects/${this.output.id}`, props);
-        } else {
-          // Create new project
-          response = await api.post("/projects", props);
+        if (!this.output?.id) {
+          throw new Error("Cannot update project without ID");
         }
 
-        // Parse response JSON
+        // 409 Conflict: Can't update name, so remove it from the props
+        const { name, ...rest } = props;
+
+        const response = await api.patch(`/projects/${this.output.id}`, rest);
         const data = (await response.json()) as {
           id: string;
           accountId: string;
@@ -299,7 +302,6 @@ export const Project = Resource(
           };
         };
 
-        // Return the project using this() to construct output
         return this({
           id: data.id,
           accountId: data.accountId,
@@ -308,9 +310,34 @@ export const Project = Resource(
           latestDeployment: data.latestDeployment,
           ...props,
         });
-      } catch (error) {
-        console.error("Error creating/updating project:", error);
-        throw error;
+      }
+
+      default: {
+        const api = await createVercelApi({
+          baseUrl: "https://api.vercel.com/v11",
+          accessToken: props.accessToken,
+        });
+
+        const response = await api.post("/projects", props);
+        const data = (await response.json()) as {
+          id: string;
+          accountId: string;
+          createdAt: number;
+          updatedAt: number;
+          latestDeployment?: {
+            id: string;
+            url: string;
+          };
+        };
+
+        return this({
+          id: data.id,
+          accountId: data.accountId,
+          createdAt: data.createdAt,
+          updatedAt: data.updatedAt,
+          latestDeployment: data.latestDeployment,
+          ...props,
+        });
       }
     }
   },

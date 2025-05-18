@@ -2,8 +2,8 @@ import { afterAll, beforeAll, describe, expect } from "bun:test";
 import { alchemy } from "../../src/alchemy.js";
 import { destroy } from "../../src/destroy.js";
 import { VercelApi } from "../../src/vercel/api.js";
-import { Project } from "../../src/vercel/project.js";
 import { ProjectDomain } from "../../src/vercel/project-domain.js";
+import { Project } from "../../src/vercel/project.js";
 import { BRANCH_PREFIX } from "../util.js";
 // must import this or else alchemy.test won't exist
 import "../../src/test/bun.js";
