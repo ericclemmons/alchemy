@@ -275,13 +275,13 @@ export const Project = Resource(
   async function (
     this: Context<Project>,
     id: string,
-    props: ProjectProps & { accessToken?: Secret },
+    { accessToken, ...props }: ProjectProps & { accessToken?: Secret },
   ): Promise<Project> {
     switch (this.phase) {
       case "delete": {
         const api = await createVercelApi({
           baseUrl: "https://api.vercel.com/v9",
-          accessToken: props.accessToken,
+          accessToken,
         });
 
         try {
@@ -300,13 +300,14 @@ export const Project = Resource(
         } catch (error) {
           console.error("Error deleting project:", error);
         }
+
         return this.destroy();
       }
 
       case "update": {
         const api = await createVercelApi({
           baseUrl: "https://api.vercel.com/v9",
-          accessToken: props.accessToken,
+          accessToken,
         });
 
         if (!this.output?.id) {
@@ -314,7 +315,8 @@ export const Project = Resource(
         }
 
         // 409 Conflict: Can't update name, so remove it from the props
-        const { name, ...rest } = props;
+        // 400 Invalid Request: Should NOT have additional property `environmentVariables`
+        const { name, environmentVariables, ...rest } = props;
 
         const response = await api.patch(`/projects/${this.output.id}`, rest);
         const data = (await response.json()) as {
@@ -327,6 +329,44 @@ export const Project = Resource(
             url: string;
           };
         };
+
+        if (environmentVariables) {
+          const envApi = await createVercelApi({
+            baseUrl: "https://api.vercel.com/v10",
+            accessToken,
+          });
+
+          await envApi.post(
+            `/projects/${this.output.id}/env?upsert=true`,
+            environmentVariables.map((envVar) => ({
+              ...envVar,
+              value:
+                envVar.type === "encrypted"
+                  ? envVar.value.unencrypted
+                  : envVar.value,
+            })),
+          );
+
+          // Find previous env vars that are not in the new list and delete them
+          const { envs } = (await envApi
+            .get(`/projects/${this.output.id}/env`)
+            .then((res) => res.json())) as {
+            envs: Array<{ id: string; key: string }>;
+          };
+          for (const previousEnv of envs) {
+            if (
+              environmentVariables.some(
+                (envVar) => envVar.key === previousEnv.key,
+              )
+            ) {
+              continue;
+            }
+
+            await envApi.delete(
+              `/projects/${this.output.id}/env/${previousEnv.id}`,
+            );
+          }
+        }
 
         return this({
           id: data.id,
@@ -341,7 +381,7 @@ export const Project = Resource(
       default: {
         const api = await createVercelApi({
           baseUrl: "https://api.vercel.com/v11",
-          accessToken: props.accessToken,
+          accessToken,
         });
 
         for (const envVar of props.environmentVariables ?? []) {
@@ -369,6 +409,7 @@ export const Project = Resource(
           createdAt: data.createdAt,
           updatedAt: data.updatedAt,
           latestDeployment: data.latestDeployment,
+          environmentVariables: props.environmentVariables,
           ...props,
         });
       }

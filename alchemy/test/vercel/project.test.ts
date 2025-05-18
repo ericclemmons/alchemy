@@ -56,6 +56,14 @@ describe("Project Resource", () => {
         name: testId,
         framework: "nextjs",
         buildCommand: "next build",
+        environmentVariables: [
+          {
+            key: "TEST_PLAIN_VAR",
+            target: ["production", "preview", "development"],
+            type: "plain",
+            value: "test",
+          },
+        ],
       });
 
       expect(project.id).toEqual(project.id);
