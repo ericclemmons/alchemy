@@ -8,107 +8,184 @@ import { createVercelApi } from "./api.js";
  */
 export interface ProjectProps {
   /**
-   * The name of the project
+   * The desired name for the project
+   *
+   * Maximum length: `100`
+   * Example: `a-project-name`
    */
   name: string;
 
   /**
-   * The Git repository that will be connected to the project
+   * Opt-in to preview toolbar on the project level
+   */
+  enablePreviewFeedback?: boolean;
+
+  /**
+   * Opt-in to production toolbar on the project level
+   */
+  enableProductionFeedback?: boolean;
+
+  /**
+   * The build command for this project. When `null` is used this value will be automatically detected
+   */
+  buildCommand?: string;
+
+  commandForIgnoringBuildStep?: string;
+
+  /**
+   * The dev command for this project. When `null` is used this value will be automatically detected
+   */
+  devCommand?: string;
+
+  /**
+   * Collection of ENV Variables the Project will use
+   */
+  environmentVariables?: Array<
+    {
+      /**
+       * The key of the environment variable
+       */
+      key: string;
+
+      /**
+       * The target environment
+       */
+      target: ("production" | "preview" | "development")[];
+
+      /**
+       * The Git branch
+       */
+      gitBranch?: string;
+
+      /**
+       * The type of environment variable
+       */
+      type: "system" | "encrypted" | "plain" | "sensitive";
+
+      /**
+       * The value of the environment variable
+       */
+      value: Secret | string;
+    } & (
+      | { type: "system" | "plain"; value: string }
+      | { type: "encrypted" | "sensitive"; value: Secret }
+    )
+  >;
+
+  /**
+   * The framework that is being used for this project. When `null` is used no framework is selected
+   */
+  framework?:
+    | "blitzjs"
+    | "nextjs"
+    | "gatsby"
+    | "remix"
+    | "react-router"
+    | "astro"
+    | "hexo"
+    | "eleventy"
+    | "docusaurus-2"
+    | "docusaurus"
+    | "preact"
+    | "solidstart-1"
+    | "solidstart"
+    | "dojo"
+    | "ember"
+    | "vue"
+    | "scully"
+    | "ionic-angular"
+    | "angular"
+    | "polymer"
+    | "svelte"
+    | "sveltekit"
+    | "sveltekit-1"
+    | "ionic-react"
+    | "create-react-app"
+    | "gridsome"
+    | "umijs"
+    | "sapper"
+    | "saber"
+    | "stencil"
+    | "nuxtjs"
+    | "redwoodjs"
+    | "hugo"
+    | "jekyll"
+    | "brunch"
+    | "middleman"
+    | "zola"
+    | "hydrogen"
+    | "vite"
+    | "vitepress"
+    | "vuepress"
+    | "parcel"
+    | "fasthtml"
+    | "sanity-v3"
+    | "sanity"
+    | "storybook"
+    | (string & {});
+
+  /**
+   * The Git Repository that will be connected to the project. When this is defined, any pushes to the specified connected Git Repository will be automatically deployed
    */
   gitRepository?: {
     /**
-     * The type of Git repository
+     * The Git Provider of the repository
      */
     type: "github" | "gitlab" | "bitbucket";
 
     /**
-     * The name of the Git repository
+     * The name of the git repository. For example: `vercel/next.js`
      */
     repo: string;
   };
 
   /**
-   * The framework that is being used
-   */
-  framework?: string;
-
-  /**
-   * The build command for this project
-   */
-  buildCommand?: string;
-
-  /**
-   * The output directory of the build
-   */
-  outputDirectory?: string;
-
-  /**
-   * The install command for this project
+   * The install command for this project. When `null` is used this value will be automatically detected
    */
   installCommand?: string;
 
   /**
-   * The development command for this project
+   * The output directory of the build. When `null` is used this value will be automatically detected
    */
-  devCommand?: string;
+  outputDirectory?: string;
 
   /**
-   * Command for ignoring build step
-   */
-  commandForIgnoringBuildStep?: string;
-
-  /**
-   * Whether to enable preview feedback
-   */
-  enablePreviewFeedback?: boolean;
-
-  /**
-   * Whether to enable production feedback
-   */
-  enableProductionFeedback?: boolean;
-
-  /**
-   * Whether to skip Git connect during link
-   */
-  skipGitConnectDuringLink?: boolean;
-
-  /**
-   * Whether the source is public
+   * Specifies whether the source code and logs of the deployments for this project should be public or not
    */
   publicSource?: boolean;
 
   /**
-   * The root directory of the project
+   * The name of a directory or relative path to the source code of your project. When `null` is used it will default to the project root
    */
   rootDirectory?: string;
 
   /**
-   * The serverless function region
+   * The region to deploy Serverless Functions in this project
    */
   serverlessFunctionRegion?: string;
 
   /**
-   * Whether to enable serverless function zero config failover
+   * Specifies whether Zero Config Failover is enabled for this project.
    */
   serverlessFunctionZeroConfigFailover?: boolean;
 
   /**
-   * OIDC token configuration
+   * OpenID Connect JSON Web Token generation configuration.
    */
   oidcTokenConfig?: {
     /**
-     * Whether OIDC is enabled
+     * Whether or not to generate OpenID Connect JSON Web Tokens.
      */
     enabled: boolean;
 
     /**
-     * The issuer mode
+     * team: `https://oidc.vercel.com/[team_slug]` global: `https://oidc.vercel.com`
      */
-    issuerMode: "team";
+    issuerMode: "team" | "global";
   };
 
   /**
-   * Whether to enable affected projects deployments
+   * Opt-in to skip deployments when there are no changes to the root directory and its dependencies
    */
   enableAffectedProjectsDeployments?: boolean;
 
@@ -134,7 +211,7 @@ export interface ProjectProps {
     /**
      * Default memory type for functions
      */
-    functionDefaultMemoryType?: "standard_legacy";
+    functionDefaultMemoryType?: "standard_legacy" | "standard" | "performance";
 
     /**
      * Whether function zero config failover is enabled
@@ -149,38 +226,8 @@ export interface ProjectProps {
     /**
      * The build machine type
      */
-    buildMachineType?: "enhanced";
+    buildMachineType?: "enhanced" | "ultra";
   };
-
-  /**
-   * Environment variables for the project
-   */
-  environmentVariables?: Array<{
-    /**
-     * The key of the environment variable
-     */
-    key: string;
-
-    /**
-     * The target environment
-     */
-    target: "production" | "preview" | "development";
-
-    /**
-     * The Git branch
-     */
-    gitBranch?: string;
-
-    /**
-     * The type of environment variable
-     */
-    type: "system" | "secret" | "encrypted" | "plain";
-
-    /**
-     * The value of the environment variable
-     */
-    value: string;
-  }>;
 }
 
 /**
@@ -223,27 +270,6 @@ export interface Project extends Resource<"vercel::Project">, ProjectProps {
   };
 }
 
-/**
- * Create and manage Vercel projects
- *
- * @example
- * // Create a basic project:
- * const project = await Project("my-app", {
- *   name: "My App",
- *   framework: "nextjs"
- * });
- *
- * @example
- * // Create a project with Git integration:
- * const project = await Project("my-app", {
- *   name: "My App",
- *   framework: "nextjs",
- *   gitRepository: {
- *     type: "github",
- *     repo: "username/repo"
- *   }
- * });
- */
 export const Project = Resource(
   "vercel::Project",
   async function (
@@ -317,6 +343,13 @@ export const Project = Resource(
           baseUrl: "https://api.vercel.com/v11",
           accessToken: props.accessToken,
         });
+
+        for (const envVar of props.environmentVariables ?? []) {
+          if (envVar.type === "encrypted") {
+            // @ts-expect-error - It's a secret, but Vercel needs the string
+            envVar.value = envVar.value.unencrypted;
+          }
+        }
 
         const response = await api.post("/projects", props);
         const data = (await response.json()) as {

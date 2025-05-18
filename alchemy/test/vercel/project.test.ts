@@ -24,7 +24,21 @@ describe("Project Resource", () => {
       // Create a test project
       project = await Project(testId, {
         name: testId,
-        framework: "nextjs",
+        framework: "astro",
+        environmentVariables: [
+          {
+            key: "TEST_PLAIN_VAR",
+            target: ["production", "preview", "development"],
+            type: "plain",
+            value: "test",
+          },
+          {
+            key: "TEST_ENCRYPTED_VAR",
+            target: ["production", "preview", "development"],
+            type: "encrypted",
+            value: alchemy.secret("test"),
+          },
+        ],
       });
 
       expect(project.id).toBeTruthy();
