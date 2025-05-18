@@ -1,5 +1,6 @@
 import type { Context } from "../context.js";
 import { Resource } from "../resource.js";
+import { secret } from "../secret.js";
 import { VercelApi } from "./api.js";
 
 /**
@@ -118,7 +119,10 @@ export const ProjectDomain = Resource(
     }
 
     // Initialize API client
-    const api = new VercelApi();
+    const api = new VercelApi({
+      baseUrl: "https://api.vercel.com/v9",
+      token: secret(token).unencrypted,
+    });
 
     if (this.phase === "delete") {
       try {

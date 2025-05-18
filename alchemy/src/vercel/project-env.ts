@@ -1,5 +1,6 @@
 import type { Context } from "../context.js";
 import { Resource } from "../resource.js";
+import type { Secret } from "../secret.js";
 import { VercelApi } from "./api.js";
 
 /**
@@ -22,19 +23,24 @@ export interface ProjectEnvProps {
   value: string;
 
   /**
-   * The type of environment variable
+   * The type of the environment variable
    */
   type: "plain" | "secret";
 
   /**
-   * The target environments for the variable
+   * The target environment
    */
-  target: ("production" | "preview" | "development")[];
+  target: "production" | "preview" | "development";
 
   /**
-   * The Git branch to link the variable to
+   * The Git branch to link the environment variable to
    */
   gitBranch?: string;
+
+  /**
+   * Vercel access token to use (overrides environment variable)
+   */
+  accessToken?: Secret;
 }
 
 /**
@@ -64,33 +70,33 @@ export interface ProjectEnv
  *
  * @example
  * // Add a plain environment variable:
- * const env = await ProjectEnv("DATABASE_URL", {
+ * const env = await ProjectEnv("API_KEY", {
  *   projectId: "prj_123",
- *   key: "DATABASE_URL",
- *   value: "postgres://user:pass@localhost:5432/db",
+ *   key: "API_KEY",
+ *   value: "my-api-key",
  *   type: "plain",
- *   target: ["production", "preview"]
+ *   target: "production"
  * });
  *
  * @example
  * // Add a secret environment variable:
- * const env = await ProjectEnv("API_KEY", {
+ * const env = await ProjectEnv("DB_PASSWORD", {
  *   projectId: "prj_123",
- *   key: "API_KEY",
- *   value: "sk_live_123",
+ *   key: "DB_PASSWORD",
+ *   value: "my-db-password",
  *   type: "secret",
- *   target: ["production"]
+ *   target: "production"
  * });
  *
  * @example
  * // Add an environment variable for a specific Git branch:
- * const env = await ProjectEnv("FEATURE_FLAG", {
+ * const env = await ProjectEnv("API_URL", {
  *   projectId: "prj_123",
- *   key: "FEATURE_FLAG",
- *   value: "true",
+ *   key: "API_URL",
+ *   value: "https://staging-api.example.com",
  *   type: "plain",
- *   target: ["preview"],
- *   gitBranch: "feature/new-ui"
+ *   target: "preview",
+ *   gitBranch: "staging"
  * });
  */
 export const ProjectEnv = Resource(
@@ -100,14 +106,11 @@ export const ProjectEnv = Resource(
     id: string,
     props: ProjectEnvProps,
   ): Promise<ProjectEnv> {
-    // Get API token from environment
-    const token = process.env.VERCEL_TOKEN;
-    if (!token) {
-      throw new Error("VERCEL_TOKEN environment variable is required");
-    }
-
     // Initialize API client
-    const api = new VercelApi();
+    const api = new VercelApi({
+      baseUrl: "https://api.vercel.com/v9",
+      accessToken: props.accessToken,
+    });
 
     if (this.phase === "delete") {
       try {

@@ -1,11 +1,19 @@
+import { alchemy } from "../alchemy.js";
+import type { Secret } from "../secret.js";
+
 /**
  * Options for Vercel API requests
  */
 export interface VercelApiOptions {
   /**
-   * API token to use (overrides environment variable)
+   * Base URL for API
    */
-  token?: string;
+  baseUrl: string;
+
+  /**
+   * API access token to use (overrides environment variable)
+   */
+  accessToken?: Secret;
 
   /**
    * Team ID (overrides environment variable)
@@ -20,8 +28,8 @@ export class VercelApi {
   /** Base URL for API */
   readonly baseUrl: string;
 
-  /** API token */
-  readonly token: string;
+  /** API access token */
+  readonly accessToken: Secret;
 
   /** Team ID */
   readonly teamId: string;
@@ -31,15 +39,16 @@ export class VercelApi {
    *
    * @param options API options
    */
-  constructor(options: VercelApiOptions = {}) {
+  constructor(options: VercelApiOptions) {
     // Initialize with environment variables or provided values
-    this.baseUrl = "https://api.vercel.com/v9";
-    this.token = options.token || process.env.VERCEL_TOKEN || "";
+    this.baseUrl = options.baseUrl;
+    this.accessToken =
+      options.accessToken || alchemy.secret(process.env.VERCEL_ACCESS_TOKEN);
     this.teamId = options.teamId || process.env.VERCEL_TEAM_ID || "";
 
     // Validate required configuration
-    if (!this.token) {
-      throw new Error("VERCEL_TOKEN environment variable is required");
+    if (!this.accessToken) {
+      throw new Error("VERCEL_ACCESS_TOKEN environment variable is required");
     }
   }
 
@@ -54,7 +63,7 @@ export class VercelApi {
     // Set up authentication headers
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${this.token}`,
+      Authorization: `Bearer ${this.accessToken.unencrypted}`,
     };
 
     // Add team ID if present
