@@ -3,9 +3,9 @@
  */
 export interface SentryApiOptions {
   /**
-   * API token to use (overrides environment variable)
+   * Auth token to use (overrides environment variable)
    */
-  apiToken?: string;
+  authToken?: string;
 }
 
 /**
@@ -15,8 +15,8 @@ export class SentryApi {
   /** Base URL for API */
   readonly baseUrl: string;
 
-  /** API token */
-  readonly apiToken: string;
+  /** Auth token */
+  readonly authToken: string;
 
   /**
    * Create a new API client
@@ -25,9 +25,9 @@ export class SentryApi {
    */
   constructor(options: SentryApiOptions = {}) {
     this.baseUrl = "https://sentry.io/api/0";
-    this.apiToken = options.apiToken || process.env.SENTRY_AUTH_TOKEN || "";
+    this.authToken = options.authToken || process.env.SENTRY_AUTH_TOKEN || "";
 
-    if (!this.apiToken) {
+    if (!this.authToken) {
       throw new Error("SENTRY_AUTH_TOKEN environment variable is required");
     }
   }
@@ -42,7 +42,7 @@ export class SentryApi {
   async fetch(path: string, init: RequestInit = {}): Promise<Response> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${this.apiToken}`,
+      Authorization: `Bearer ${this.authToken}`,
     };
 
     if (init.headers) {
