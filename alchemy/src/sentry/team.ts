@@ -99,10 +99,26 @@ export interface Team extends Resource<"sentry::Team">, TeamProps {
  * Create and manage Sentry teams
  *
  * @example
- * // Create a new team:
+ * // Create a basic Sentry team:
  * const team = await Team("my-team", {
  *   name: "My Team",
- *   slug: "my-team"
+ *   organization: "my-org"
+ * });
+ *
+ * @example
+ * // Create a team with a custom slug:
+ * const team = await Team("custom-team", {
+ *   name: "Custom Team",
+ *   organization: "my-org",
+ *   slug: "custom-team-slug"
+ * });
+ *
+ * @example
+ * // Create or adopt an existing team with the same slug:
+ * const team = await Team("existing-team", {
+ *   name: "Existing Team",
+ *   organization: "my-org",
+ *   adopt: true
  * });
  */
 export const Team = Resource(

@@ -137,13 +137,41 @@ export interface ClientKey
  * Create and manage Sentry client keys
  *
  * @example
- * // Create a new client key:
+ * // Create a basic Sentry client key:
  * const key = await ClientKey("my-key", {
  *   name: "My Key",
+ *   project: "my-project",
+ *   organization: "my-org"
+ * });
+ *
+ * @example
+ * // Create a client key with rate limiting:
+ * const key = await ClientKey("rate-limited-key", {
+ *   name: "Rate Limited Key",
+ *   project: "my-project",
+ *   organization: "my-org",
  *   rateLimit: {
- *     window: 3600,
- *     count: 1000
+ *     window: 3600, // 1 hour
+ *     count: 1000   // 1000 events per hour
  *   }
+ * });
+ *
+ * @example
+ * // Create a client key for a specific use case:
+ * const key = await ClientKey("profiling-key", {
+ *   name: "Profiling Key",
+ *   project: "my-project",
+ *   organization: "my-org",
+ *   useCase: "profiling"
+ * });
+ *
+ * @example
+ * // Create or adopt an existing key with the same name:
+ * const key = await ClientKey("existing-key", {
+ *   name: "Existing Key",
+ *   project: "my-project",
+ *   organization: "my-org",
+ *   adopt: true
  * });
  */
 export const ClientKey = Resource(

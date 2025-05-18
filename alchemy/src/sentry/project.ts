@@ -241,12 +241,39 @@ export interface Project
  * Create and manage Sentry projects
  *
  * @example
- * // Create a new project:
+ * // Create a basic Sentry project:
  * const project = await Project("my-project", {
  *   name: "My Project",
- *   slug: "my-project",
- *   platform: "node-express",
- *   team: "my-team"
+ *   team: "my-team",
+ *   organization: "my-org"
+ * });
+ *
+ * @example
+ * // Create a project for a specific platform:
+ * const project = await Project("js-project", {
+ *   name: "JavaScript Project",
+ *   team: "my-team",
+ *   organization: "my-org",
+ *   platform: "javascript"
+ * });
+ *
+ * @example
+ * // Create a project with a custom slug and disabled default rules:
+ * const project = await Project("custom-project", {
+ *   name: "Custom Project",
+ *   team: "my-team",
+ *   organization: "my-org",
+ *   slug: "custom-project-slug",
+ *   defaultRules: false
+ * });
+ *
+ * @example
+ * // Create or adopt an existing project with the same slug:
+ * const project = await Project("existing-project", {
+ *   name: "Existing Project",
+ *   team: "my-team",
+ *   organization: "my-org",
+ *   adopt: true
  * });
  */
 export const Project = Resource(
