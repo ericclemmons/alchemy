@@ -1,7 +1,7 @@
 import type { Context } from "../context.js";
 import { Resource } from "../resource.js";
-import { secret } from "../secret.js";
-import { VercelApi } from "./api.js";
+import type { Secret } from "../secret.js";
+import { createVercelApi } from "./api.js";
 
 /**
  * Properties for creating or updating a Project
@@ -51,6 +51,136 @@ export interface ProjectProps {
    * The development command for this project
    */
   devCommand?: string;
+
+  /**
+   * Command for ignoring build step
+   */
+  commandForIgnoringBuildStep?: string;
+
+  /**
+   * Whether to enable preview feedback
+   */
+  enablePreviewFeedback?: boolean;
+
+  /**
+   * Whether to enable production feedback
+   */
+  enableProductionFeedback?: boolean;
+
+  /**
+   * Whether to skip Git connect during link
+   */
+  skipGitConnectDuringLink?: boolean;
+
+  /**
+   * Whether the source is public
+   */
+  publicSource?: boolean;
+
+  /**
+   * The root directory of the project
+   */
+  rootDirectory?: string;
+
+  /**
+   * The serverless function region
+   */
+  serverlessFunctionRegion?: string;
+
+  /**
+   * Whether to enable serverless function zero config failover
+   */
+  serverlessFunctionZeroConfigFailover?: boolean;
+
+  /**
+   * OIDC token configuration
+   */
+  oidcTokenConfig?: {
+    /**
+     * Whether OIDC is enabled
+     */
+    enabled: boolean;
+
+    /**
+     * The issuer mode
+     */
+    issuerMode: "team";
+  };
+
+  /**
+   * Whether to enable affected projects deployments
+   */
+  enableAffectedProjectsDeployments?: boolean;
+
+  /**
+   * Resource configuration
+   */
+  resourceConfig?: {
+    /**
+     * Whether fluid is enabled
+     */
+    fluid?: boolean;
+
+    /**
+     * Default regions for functions
+     */
+    functionDefaultRegions?: string[];
+
+    /**
+     * Default timeout for functions
+     */
+    functionDefaultTimeout?: number;
+
+    /**
+     * Default memory type for functions
+     */
+    functionDefaultMemoryType?: "standard_legacy";
+
+    /**
+     * Whether function zero config failover is enabled
+     */
+    functionZeroConfigFailover?: boolean;
+
+    /**
+     * Whether elastic concurrency is enabled
+     */
+    elasticConcurrencyEnabled?: boolean;
+
+    /**
+     * The build machine type
+     */
+    buildMachineType?: "enhanced";
+  };
+
+  /**
+   * Environment variables for the project
+   */
+  environmentVariables?: Array<{
+    /**
+     * The key of the environment variable
+     */
+    key: string;
+
+    /**
+     * The target environment
+     */
+    target: "production" | "preview" | "development";
+
+    /**
+     * The Git branch
+     */
+    gitBranch?: string;
+
+    /**
+     * The type of environment variable
+     */
+    type: "system" | "secret" | "encrypted" | "plain";
+
+    /**
+     * The value of the environment variable
+     */
+    value: string;
+  }>;
 }
 
 /**
@@ -119,18 +249,11 @@ export const Project = Resource(
   async function (
     this: Context<Project>,
     id: string,
-    props: ProjectProps,
+    props: ProjectProps & { accessToken?: Secret },
   ): Promise<Project> {
-    // Get API token from environment
-    const token = process.env.VERCEL_TOKEN;
-    if (!token) {
-      throw new Error("VERCEL_TOKEN environment variable is required");
-    }
-
-    // Initialize API client
-    const api = new VercelApi({
-      baseUrl: "https://api.vercel.com/v9",
-      token: secret(token).unencrypted,
+    const api = await createVercelApi({
+      baseUrl: "https://api.vercel.com/v11",
+      accessToken: props.accessToken,
     });
 
     if (this.phase === "delete") {
@@ -162,11 +285,6 @@ export const Project = Resource(
         } else {
           // Create new project
           response = await api.post("/projects", props);
-        }
-
-        // Check response status directly
-        if (!response.ok) {
-          throw new Error(`API error: ${response.statusText}`);
         }
 
         // Parse response JSON
