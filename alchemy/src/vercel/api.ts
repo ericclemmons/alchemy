@@ -14,15 +14,30 @@ export interface VercelApiOptions {
    * API access token to use (overrides environment variable)
    */
   accessToken?: Secret;
-
-  /**
-   * Team ID (overrides environment variable)
-   */
-  teamId?: string;
 }
 
 /**
- * Minimal API client using raw fetch
+ * Creates a VercelApi instance with automatic token validation
+ *
+ * @param options API options
+ * @returns Promise resolving to a VercelApi instance
+ */
+export async function createVercelApi(
+  options: VercelApiOptions,
+): Promise<VercelApi> {
+  const {
+    accessToken = await alchemy.secret.env.VERCEL_ACCESS_TOKEN,
+    baseUrl,
+  } = options;
+
+  return new VercelApi({
+    baseUrl,
+    accessToken,
+  });
+}
+
+/**
+ * Vercel API client using raw fetch
  */
 export class VercelApi {
   /** Base URL for API */
@@ -31,25 +46,16 @@ export class VercelApi {
   /** API access token */
   readonly accessToken: Secret;
 
-  /** Team ID */
-  readonly teamId: string;
-
   /**
    * Create a new API client
+   * Use createVercelApi factory function instead of direct constructor
+   * for automatic token validation.
    *
    * @param options API options
    */
-  constructor(options: VercelApiOptions) {
-    // Initialize with environment variables or provided values
+  constructor(options: VercelApiOptions & { accessToken: Secret }) {
     this.baseUrl = options.baseUrl;
-    this.accessToken =
-      options.accessToken || alchemy.secret(process.env.VERCEL_ACCESS_TOKEN);
-    this.teamId = options.teamId || process.env.VERCEL_TEAM_ID || "";
-
-    // Validate required configuration
-    if (!this.accessToken) {
-      throw new Error("VERCEL_ACCESS_TOKEN environment variable is required");
-    }
+    this.accessToken = options.accessToken;
   }
 
   /**
@@ -65,11 +71,6 @@ export class VercelApi {
       "Content-Type": "application/json",
       Authorization: `Bearer ${this.accessToken.unencrypted}`,
     };
-
-    // Add team ID if present
-    if (this.teamId) {
-      headers["x-team-id"] = this.teamId;
-    }
 
     // Add headers from init if provided
     if (init.headers) {
