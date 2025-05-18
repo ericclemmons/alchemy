@@ -1,7 +1,7 @@
 import type { Context } from "../context.js";
 import { Resource } from "../resource.js";
-import { secret } from "../secret.js";
-import { VercelApi } from "./api.js";
+import type { Secret } from "../secret.js";
+import { createVercelApi } from "./api.js";
 
 /**
  * Properties for creating or updating a ProjectDomain
@@ -13,14 +13,19 @@ export interface ProjectDomainProps {
   name: string;
 
   /**
-   * The project ID to add the domain to
+   * The unique project identifier or the project name
    */
-  projectId: string;
+  project: string;
 
   /**
    * The Git branch to link the domain to
    */
   gitBranch?: string;
+
+  /**
+   * The unique custom environment identifier within the project
+   */
+  customEnvironment?: string;
 
   /**
    * The redirect target for the domain
@@ -30,7 +35,7 @@ export interface ProjectDomainProps {
   /**
    * The redirect status code
    */
-  redirectStatusCode?: number;
+  redirectStatusCode?: 301 | 302 | 307 | 308;
 }
 
 /**
@@ -39,10 +44,12 @@ export interface ProjectDomainProps {
 export interface ProjectDomain
   extends Resource<"vercel::ProjectDomain">,
     ProjectDomainProps {
+  apexName: string;
+
   /**
-   * The ID of the domain
+   * `true` if the domain is verified for use with the project. If `false` it will not be used as an alias on this project until the challenge in `verification` is completed.
    */
-  id: string;
+  verified: boolean;
 
   /**
    * The time at which the domain was created
@@ -55,12 +62,10 @@ export interface ProjectDomain
   updatedAt: number;
 
   /**
-   * Whether the domain is verified
-   */
-  verified: boolean;
-
-  /**
-   * The verification status of the domain
+   * A list of verification challenges, one of which must be completed to verify the domain for use on the project. After the challenge is complete `POST /projects/:idOrName/domains/:domain/verify` to verify the domain.
+   *
+   * Possible challenges:
+   *   - If `verification.type = TXT` the `verification.domain` will be checked for a TXT record matching `verification.value`.
    */
   verification?: {
     /**
@@ -81,117 +86,58 @@ export interface ProjectDomain
     /**
      * The reason for verification
      */
-    reason?: string;
+    reason: string;
   }[];
 }
 
-/**
- * Create and manage Vercel project domains
- *
- * @example
- * // Add a domain to a project:
- * const domain = await ProjectDomain("my-app.com", {
- *   name: "my-app.com",
- *   projectId: "prj_123"
- * });
- *
- * @example
- * // Add a domain with Git branch and redirect:
- * const domain = await ProjectDomain("my-app.com", {
- *   name: "my-app.com",
- *   projectId: "prj_123",
- *   gitBranch: "main",
- *   redirect: "https://example.com",
- *   redirectStatusCode: 301
- * });
- */
 export const ProjectDomain = Resource(
   "vercel::ProjectDomain",
   async function (
     this: Context<ProjectDomain>,
     id: string,
-    props: ProjectDomainProps,
+    { accessToken, ...props }: ProjectDomainProps & { accessToken?: Secret },
   ): Promise<ProjectDomain> {
-    // Get API token from environment
-    const token = process.env.VERCEL_TOKEN;
-    if (!token) {
-      throw new Error("VERCEL_TOKEN environment variable is required");
-    }
+    switch (this.phase) {
+      case "create": {
+        const api = await createVercelApi({
+          baseUrl: "https://api.vercel.com/v10",
+          accessToken,
+        });
+        const domain = (await api
+          .post(`/projects/${props.project}/domains`, props)
+          .then((res) => res.json())) as ProjectDomain;
 
-    // Initialize API client
-    const api = new VercelApi({
-      baseUrl: "https://api.vercel.com/v9",
-      token: secret(token).unencrypted,
-    });
-
-    if (this.phase === "delete") {
-      try {
-        if (this.output?.id) {
-          // Delete domain
-          const deleteResponse = await api.delete(
-            `/projects/${props.projectId}/domains/${this.output.name}`,
-          );
-
-          // Check response status directly instead of relying on exceptions
-          if (!deleteResponse.ok && deleteResponse.status !== 404) {
-            console.error("Error deleting domain:", deleteResponse.statusText);
-          }
-        }
-      } catch (error) {
-        console.error("Error deleting domain:", error);
+        return this.create({ ...props, ...domain });
       }
 
-      // Return destroyed state
-      return this.destroy();
-    } else {
-      try {
-        let response;
+      case "update": {
+        const { gitBranch, redirect, redirectStatusCode } = props;
 
-        if (this.phase === "update" && this.output?.id) {
-          // Update existing domain
-          response = await api.patch(
-            `/projects/${props.projectId}/domains/${this.output.name}`,
-            props,
-          );
-        } else {
-          // Create new domain
-          response = await api.post(
-            `/projects/${props.projectId}/domains`,
-            props,
-          );
-        }
-
-        // Check response status directly
-        if (!response.ok) {
-          throw new Error(`API error: ${response.statusText}`);
-        }
-
-        // Parse response JSON
-        const data = (await response.json()) as {
-          id: string;
-          createdAt: number;
-          updatedAt: number;
-          verified: boolean;
-          verification?: {
-            type: string;
-            domain: string;
-            value: string;
-            reason?: string;
-          }[];
-        };
-
-        // Return the domain using this() to construct output
-        return this({
-          id: data.id,
-          createdAt: data.createdAt,
-          updatedAt: data.updatedAt,
-          verified: data.verified,
-          verification: data.verification,
-          ...props,
+        const api = await createVercelApi({
+          baseUrl: "https://api.vercel.com/v9",
+          accessToken,
         });
-      } catch (error) {
-        console.error("Error creating/updating domain:", error);
-        throw error;
+        const domain = (await api
+          .patch(`/projects/${props.project}/domains/${this.output.name}`, {
+            gitBranch,
+            redirect,
+            redirectStatusCode,
+          })
+          .then((res) => res.json())) as ProjectDomain;
+
+        return this.create({ ...props, ...domain });
+      }
+
+      case "delete": {
+        const api = await createVercelApi({
+          baseUrl: "https://api.vercel.com/v9",
+          accessToken,
+        });
+        await api.delete(
+          `/projects/${props.project}/domains/${this.output.name}`,
+        );
+
+        return this.destroy();
       }
     }
   },
