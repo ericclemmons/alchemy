@@ -3,6 +3,34 @@ title: Managing Sentry Client Keys with Alchemy
 description: Learn how to create, configure, and manage Sentry client keys using Alchemy.
 ---
 
+# Sentry ClientKey
+
+Create and manage Sentry client keys.
+
+## Authentication
+
+You can authenticate with Sentry in two ways:
+
+1. Environment variable (recommended):
+   ```bash
+   # .env
+   SENTRY_AUTH_TOKEN=your_auth_token
+   ```
+
+2. Pass the token directly:
+   ```typescript
+   const key = await ClientKey("my-key", {
+     name: "My Key",
+     project: "my-project",
+     organization: "my-org",
+     authToken: "your_auth_token"
+   });
+   ```
+
+Get your auth token from [Sentry's API settings](https://sentry.io/settings/account/api/auth-tokens/).
+
+## Usage
+
 # ClientKey
 
 The ClientKey resource lets you create and manage [Sentry](https://sentry.io) client keys for your projects.

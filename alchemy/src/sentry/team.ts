@@ -1,6 +1,6 @@
 import type { Context } from "../context.js";
 import { Resource } from "../resource.js";
-import { SentryApi } from "./api.js";
+import { SentryApi, type SentryApiOptions } from "./api.js";
 
 /**
  * Properties for creating or updating a Team
@@ -20,6 +20,11 @@ export interface TeamProps {
    * The organization ID or slug that owns the team
    */
   organization: string;
+
+  /**
+   * Auth token to use (overrides environment variable)
+   */
+  authToken?: SentryApiOptions["authToken"];
 
   /**
    * Whether to adopt an existing team with the same slug if it exists
@@ -107,7 +112,7 @@ export const Team = Resource(
     id: string,
     props: TeamProps,
   ): Promise<Team> {
-    const api = new SentryApi();
+    const api = new SentryApi({ authToken: props.authToken });
 
     if (this.phase === "delete") {
       try {

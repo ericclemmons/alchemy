@@ -1,6 +1,6 @@
 import type { Context } from "../context.js";
 import { Resource } from "../resource.js";
-import { SentryApi } from "./api.js";
+import { SentryApi, type SentryApiOptions } from "./api.js";
 
 /**
  * Properties for creating or updating a Project
@@ -35,6 +35,11 @@ export interface ProjectProps {
    * The organization ID or slug that owns the project
    */
   organization: string;
+
+  /**
+   * Auth token to use (overrides environment variable)
+   */
+  authToken?: SentryApiOptions["authToken"];
 
   /**
    * Whether to adopt an existing project with the same slug if it exists
@@ -251,7 +256,7 @@ export const Project = Resource(
     id: string,
     props: ProjectProps,
   ): Promise<Project> {
-    const api = new SentryApi();
+    const api = new SentryApi({ authToken: props.authToken });
 
     if (this.phase === "delete") {
       try {

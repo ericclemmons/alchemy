@@ -1,6 +1,6 @@
 import type { Context } from "../context.js";
 import { Resource } from "../resource.js";
-import { SentryApi } from "./api.js";
+import { SentryApi, type SentryApiOptions } from "./api.js";
 
 /**
  * Properties for creating or updating a ClientKey
@@ -40,6 +40,11 @@ export interface ClientKeyProps {
    * The organization ID or slug that owns the key
    */
   organization: string;
+
+  /**
+   * Auth token to use (overrides environment variable)
+   */
+  authToken?: SentryApiOptions["authToken"];
 
   /**
    * Whether to adopt an existing key with the same name if it exists
@@ -148,7 +153,7 @@ export const ClientKey = Resource(
     id: string,
     props: ClientKeyProps,
   ): Promise<ClientKey> {
-    const api = new SentryApi();
+    const api = new SentryApi({ authToken: props.authToken });
 
     if (this.phase === "delete") {
       try {
