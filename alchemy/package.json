@@ -28,6 +28,7 @@
     "./stripe": "./lib/stripe/index.js",
     "./test/bun": "./lib/test/bun.js",
     "./upstash": "./lib/upstash/index.js",
+    "./vercel": "./lib/vercel/index.js",
     "./web/astro": "./lib/web/astro/index.js",
     "./web/tailwind": "./lib/web/tailwind/index.js",
     "./web/vite": "./lib/web/vite/index.js",
