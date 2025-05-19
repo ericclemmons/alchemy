@@ -12,89 +12,28 @@ Create and manage Sentry client keys.
 You can authenticate with Sentry in two ways:
 
 1. Environment variable (recommended):
+
    ```bash
    # .env
    SENTRY_AUTH_TOKEN=your_auth_token
    ```
 
 2. Pass the token directly:
+
    ```typescript
    const key = await ClientKey("my-key", {
+     authToken: alchemy.secret(process.env.SENTRY_AUTH_TOKEN),
      name: "My Key",
      project: "my-project",
      organization: "my-org",
-     authToken: "your_auth_token"
    });
    ```
 
-Get your auth token from [Sentry's API settings](https://sentry.io/settings/account/api/auth-tokens/).
+Get your [Sentry User Auth Token](https://sentry.io/settings/account/api/auth-tokens/).
 
-## Usage
+## Examples
 
-```typescript
-import { ClientKey } from "@alchemy/providers/sentry";
-
-// Create a basic client key
-const key = await ClientKey("my-key", {
-  name: "My Key",
-  project: "my-project",
-  organization: "my-org"
-});
-
-// Create a client key with rate limiting
-const key = await ClientKey("rate-limited-key", {
-  name: "Rate Limited Key",
-  project: "my-project",
-  organization: "my-org",
-  rateLimit: {
-    window: 3600, // 1 hour
-    count: 1000   // 1000 events per hour
-  }
-});
-
-// Create a client key with a custom auth token
-const key = await ClientKey("my-key", {
-  name: "My Key",
-  project: "my-project",
-  organization: "my-org",
-  authToken: alchemy.secret("my-auth-token")
-});
-```
-
-## Properties
-
-| Property | Type | Required | Description |
-|----------|------|----------|-------------|
-| `name` | `string` | No | The name of the key |
-| `project` | `string` | Yes | The project slug that owns the key |
-| `organization` | `string` | Yes | The organization ID or slug that owns the key |
-| `rateLimit` | `object` | No | Rate limit configuration |
-| `useCase` | `string` | No | The use case for the key |
-| `authToken` | `Secret` | No | Auth token to use (overrides environment variable) |
-| `adopt` | `boolean` | No | Whether to adopt an existing key with the same name if it exists |
-
-## Output
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `id` | `string` | The ID of the key |
-| `name` | `string` | The name of the key |
-| `label` | `string` | The label of the key |
-| `public` | `string` | The public key |
-| `secret` | `string` | The secret key |
-| `projectId` | `number` | The project ID |
-| `isActive` | `boolean` | Whether the key is active |
-| `dsn` | `object` | DSN configuration |
-| `browserSdkVersion` | `string` | Browser SDK version |
-| `browserSdk` | `object` | Browser SDK choices |
-| `dateCreated` | `string` | Time at which the key was created |
-| `dynamicSdkLoaderOptions` | `object` | Dynamic SDK loader options |
-
-# ClientKey
-
-The ClientKey resource lets you create and manage [Sentry](https://sentry.io) client keys for your projects.
-
-## Minimal Example
+### Minimal Example
 
 Create a basic Sentry client key:
 
@@ -108,7 +47,7 @@ const key = await ClientKey("my-key", {
 });
 ```
 
-## Rate Limited Key
+### Rate Limited Key
 
 Create a client key with rate limiting:
 
@@ -126,7 +65,7 @@ const key = await ClientKey("rate-limited-key", {
 });
 ```
 
-## Use Case Specific Key
+### Use Case Specific Key
 
 Create a client key for a specific use case:
 
@@ -141,7 +80,7 @@ const key = await ClientKey("profiling-key", {
 });
 ```
 
-## Adopt Existing Key
+### Adopt Existing Key
 
 Create or adopt an existing key with the same name:
 
@@ -149,9 +88,9 @@ Create or adopt an existing key with the same name:
 import { ClientKey } from "alchemy/sentry";
 
 const key = await ClientKey("existing-key", {
+  adopt: true
   name: "Existing Key",
   project: "my-project",
   organization: "my-org",
-  adopt: true
 });
 ``` 
