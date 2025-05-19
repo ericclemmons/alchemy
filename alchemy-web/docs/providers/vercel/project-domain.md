@@ -22,12 +22,11 @@ const domain = await ProjectDomain("my-app.com", {
 
 ### With `accessToken`
 
-
 ```ts
 const domain = await ProjectDomain("my-app.com", {
   name: "my-app.com",
   project: "prj_123",
-  accessToken: alchemy.secret(process.env.VERCEL_ACCESS_TOKEN)
+  accessToken: alchemy.secret(process.env.VERCEL_ACCESS_TOKEN),
 });
 ```
 

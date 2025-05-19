@@ -14,7 +14,7 @@ To use this resource, set `VERCEL_ACCESS_TOKEN` in your `.env` file or pass `acc
 const project = await Project("my-app", {
   name: "my-app",
   framework: "astro",
-  accessToken: alchemy.secret(process.env.VERCEL_ACCESS_TOKEN)
+  accessToken: alchemy.secret(process.env.VERCEL_ACCESS_TOKEN),
 });
 ```
 
@@ -26,7 +26,7 @@ const project = await Project("my-app", {
   framework: "nextjs",
   gitRepository: {
     type: "github",
-    repo: "username/my-app"
+    repo: "username/my-app",
   },
 });
 ```
@@ -41,8 +41,8 @@ const project = await Project("my-app", {
       key: "DATABASE_URL",
       value: alchemy.secret("DATABASE_URL"),
       type: "encrypted",
-      target: ["production", "preview"]
-    }
+      target: ["production", "preview"],
+    },
   ],
 });
 ```
