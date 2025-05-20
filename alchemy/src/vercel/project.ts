@@ -305,16 +305,7 @@ export const Project = Resource(
 
         try {
           if (this.output?.id) {
-            const deleteResponse = await api.delete(
-              `/projects/${this.output.id}`,
-            );
-
-            if (!deleteResponse.ok && deleteResponse.status !== 404) {
-              console.error(
-                "Error deleting project:",
-                deleteResponse.statusText,
-              );
-            }
+            await api.delete(`/projects/${this.output.id}`);
           }
         } catch (error) {
           console.error("Error deleting project:", error);
