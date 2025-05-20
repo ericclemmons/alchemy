@@ -1,7 +1,7 @@
 import type { Context } from "../context.js";
 import { Resource } from "../resource.js";
 import { isSecret, type Secret } from "../secret.js";
-import { createVercelApi } from "./api.js";
+import { createVercelApi, type VercelApi } from "./api.js";
 
 type TargetEnvironment = "production" | "preview" | "development";
 
@@ -397,34 +397,23 @@ export const Project = Resource(
           accessToken,
         });
 
-        const response = await api.post("/projects", {
-          ...props,
-          environmentVariables: props.environmentVariables?.map(
-            decryptEnvironmentVariable,
-          ),
-        });
+        const project = await createProject(api, props);
 
-        const data = (await response.json()) as {
-          id: string;
-          accountId: string;
-          createdAt: number;
-          updatedAt: number;
-          latestDeployment?: {
-            id: string;
-            url: string;
-          };
-        };
-
-        return this({
-          id: data.id,
-          accountId: data.accountId,
-          createdAt: data.createdAt,
-          updatedAt: data.updatedAt,
-          latestDeployment: data.latestDeployment,
-          environmentVariables: props.environmentVariables,
-          ...props,
-        });
+        return this.create({ ...props, ...project });
       }
     }
   },
 );
+
+export async function createProject(api: VercelApi, props: ProjectProps) {
+  const response = await api.post("/projects", {
+    ...props,
+    environmentVariables: props.environmentVariables?.map(
+      decryptEnvironmentVariable,
+    ),
+  });
+
+  const data = (await response.json()) as Project;
+
+  return data;
+}
