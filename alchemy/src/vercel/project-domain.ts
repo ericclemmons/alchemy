@@ -90,6 +90,34 @@ export interface ProjectDomain
   }[];
 }
 
+/**
+ * Add and manage domains for Vercel projects.
+ *
+ * @example
+ * // Minimal
+ * const domain = await ProjectDomain("my-app.com", {
+ *   name: "my-app.com",
+ *   project: "prj_123",
+ * });
+ *
+ * @example
+ * // With accessToken
+ * const domain = await ProjectDomain("my-app.com", {
+ *   accessToken: alchemy.secret(process.env.VERCEL_ACCESS_TOKEN),
+ *   name: "my-app.com",
+ *   project: "prj_123",
+ * });
+ *
+ * @example
+ * // With redirect
+ * const domain = await ProjectDomain("my-app.com", {
+ *   name: "my-app.com",
+ *   project: "prj_123",
+ *   gitBranch: "main",
+ *   redirect: "https://example.com",
+ *   redirectStatusCode: 301,
+ * });
+ */
 export const ProjectDomain = Resource(
   "vercel::ProjectDomain",
   async function (

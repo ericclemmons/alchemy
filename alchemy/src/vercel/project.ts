@@ -289,6 +289,78 @@ const decryptEnvironmentVariable = (envVar: EnvironmentVariable) => {
   return { ...envVar, type, value };
 };
 
+/**
+ * Create and manage Vercel projects.
+ *
+ * @example
+ * // With accessToken
+ * const project = await Project("my-app", {
+ *   accessToken: alchemy.secret(process.env.VERCEL_ACCESS_TOKEN),
+ *   name: "my-app",
+ *   framework: "astro",
+ * });
+ *
+ * @example
+ * // With GitHub
+ * const project = await Project("my-app", {
+ *   name: "my-app",
+ *   framework: "nextjs",
+ *   gitRepository: {
+ *     type: "github",
+ *     repo: "username/my-app",
+ *   },
+ * });
+ *
+ * @example
+ * // With plain text environment variable
+ * const project = await Project("my-app", {
+ *   name: "my-app",
+ *   environmentVariables: [
+ *     {
+ *       key: "PUBLIC_URL",
+ *       target: ["production", "preview", "development"],
+ *       value: "https://example.com",
+ *     },
+ *   ],
+ * });
+ *
+ * @example
+ * // With encrypted environment variable
+ * const project = await Project("my-app", {
+ *   name: "my-app",
+ *   environmentVariables: [
+ *     {
+ *       key: "DATABASE_URL",
+ *       target: ["production", "preview"],
+ *       value: alchemy.secret("DATABASE_URL"),
+ *     },
+ *   ],
+ * });
+ *
+ * @example
+ * // With sensitive environment variable
+ * const project = await Project("my-app", {
+ *   name: "my-app",
+ *   environmentVariables: [
+ *     {
+ *       key: "DATABASE_URL",
+ *       target: ["production", "preview"],
+ *       type: "sensitive",
+ *       value: alchemy.secret("DATABASE_URL"),
+ *     },
+ *   ],
+ * });
+ *
+ * @example
+ * // With custom build settings
+ * const project = await Project("my-app", {
+ *   name: "my-app",
+ *   buildCommand: "npm run build",
+ *   outputDirectory: "dist",
+ *   installCommand: "npm install",
+ *   devCommand: "npm run dev",
+ * });
+ */
 export const Project = Resource(
   "vercel::Project",
   async function (
