@@ -1,7 +1,41 @@
 import type { Context } from "../context.js";
 import { Resource } from "../resource.js";
-import type { Secret } from "../secret.js";
+import { isSecret, type Secret } from "../secret.js";
 import { createVercelApi } from "./api.js";
+
+type TargetEnvironment = "production" | "preview" | "development";
+
+export type EnvironmentVariable = {
+  /**
+   * The key of the environment variable
+   */
+  key: string;
+
+  /**
+   * The target environment
+   */
+  target: TargetEnvironment[];
+
+  /**
+   * The Git branch
+   */
+  gitBranch?: string;
+
+  /**
+   * The type of environment variable.
+   *
+   * Defaults to `plain` when `value` is a `string`, and `encrypted` when `value` is a `Secret`.
+   */
+  type?: "encrypted" | "plain" | "sensitive";
+
+  /**
+   * The value of the environment variable
+   */
+  value: Secret | string;
+} & (
+  | { type?: "plain" | "system"; value: string }
+  | { type?: "encrypted" | "sensitive"; value: Secret }
+);
 
 /**
  * Properties for creating or updating a Project
@@ -40,37 +74,7 @@ export interface ProjectProps {
   /**
    * Collection of ENV Variables the Project will use
    */
-  environmentVariables?: Array<
-    {
-      /**
-       * The key of the environment variable
-       */
-      key: string;
-
-      /**
-       * The target environment
-       */
-      target: ("production" | "preview" | "development")[];
-
-      /**
-       * The Git branch
-       */
-      gitBranch?: string;
-
-      /**
-       * The type of environment variable
-       */
-      type: "system" | "encrypted" | "plain" | "sensitive";
-
-      /**
-       * The value of the environment variable
-       */
-      value: Secret | string;
-    } & (
-      | { type: "system" | "plain"; value: string }
-      | { type: "encrypted" | "sensitive"; value: Secret }
-    )
-  >;
+  environmentVariables?: Array<EnvironmentVariable>;
 
   /**
    * The framework that is being used for this project. When `null` is used no framework is selected
@@ -270,6 +274,21 @@ export interface Project extends Resource<"vercel::Project">, ProjectProps {
   };
 }
 
+const decryptEnvironmentVariable = (envVar: EnvironmentVariable) => {
+  let { type, value } = envVar;
+
+  // Decrypt Secret & default `type`
+  if (isSecret(value)) {
+    value = value.unencrypted;
+    type ??= "encrypted";
+  } else {
+    // Otherwise, default to `plain`
+    type ??= "plain";
+  }
+
+  return { ...envVar, type, value };
+};
+
 export const Project = Resource(
   "vercel::Project",
   async function (
@@ -338,13 +357,7 @@ export const Project = Resource(
 
           await envApi.post(
             `/projects/${this.output.id}/env?upsert=true`,
-            environmentVariables.map((envVar) => ({
-              ...envVar,
-              value:
-                envVar.type === "encrypted"
-                  ? envVar.value.unencrypted
-                  : envVar.value,
-            })),
+            environmentVariables.map(decryptEnvironmentVariable),
           );
 
           // Find previous env vars that are not in the new list and delete them
@@ -378,20 +391,19 @@ export const Project = Resource(
         });
       }
 
-      default: {
+      case "create": {
         const api = await createVercelApi({
           baseUrl: "https://api.vercel.com/v11",
           accessToken,
         });
 
-        for (const envVar of props.environmentVariables ?? []) {
-          if (envVar.type === "encrypted") {
-            // @ts-expect-error - It's a secret, but Vercel needs the string
-            envVar.value = envVar.value.unencrypted;
-          }
-        }
+        const response = await api.post("/projects", {
+          ...props,
+          environmentVariables: props.environmentVariables?.map(
+            decryptEnvironmentVariable,
+          ),
+        });
 
-        const response = await api.post("/projects", props);
         const data = (await response.json()) as {
           id: string;
           accountId: string;

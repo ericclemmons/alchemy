@@ -27,15 +27,33 @@ describe("Project Resource", () => {
         framework: "astro",
         environmentVariables: [
           {
+            key: "TEST_DEFAULT_PLAIN_VAR",
+            target: ["production", "preview", "development"],
+            // Defaults to `type: "plain"`
+            value: "test",
+          },
+          {
             key: "TEST_PLAIN_VAR",
             target: ["production", "preview", "development"],
             type: "plain",
             value: "test",
           },
           {
+            key: "TEST_DEFAULT_ENCRYPTED_VAR",
+            target: ["production", "preview", "development"],
+            // Defaults to `type: "encrypted"`
+            value: alchemy.secret("test"),
+          },
+          {
             key: "TEST_ENCRYPTED_VAR",
             target: ["production", "preview", "development"],
             type: "encrypted",
+            value: alchemy.secret("test"),
+          },
+          {
+            key: "TEST_SENSITIVE_VAR",
+            target: ["production", "preview"],
+            type: "sensitive",
             value: alchemy.secret("test"),
           },
         ],
