@@ -12,9 +12,9 @@ To use this resource, set `VERCEL_ACCESS_TOKEN` in your `.env` file or pass `acc
 
 ```ts
 const project = await Project("my-app", {
+  accessToken: alchemy.secret(process.env.VERCEL_ACCESS_TOKEN),
   name: "my-app",
   framework: "astro",
-  accessToken: alchemy.secret(process.env.VERCEL_ACCESS_TOKEN),
 });
 ```
 
@@ -31,7 +31,25 @@ const project = await Project("my-app", {
 });
 ```
 
-### With Secrets (Environment Variables)
+### With Environment Variables
+
+#### Plain Text
+
+```ts
+const project = await Project("my-app", {
+  name: "my-app",
+  environmentVariables: [
+    {
+      key: "PUBLIC_URL",
+      target: ["production", "preview", "development"],
+      // `type: "plain"` default when `value` is a string
+      value: "https://example.com",
+    },
+  ],
+});
+```
+
+#### Encrypted
 
 ```ts
 const project = await Project("my-app", {
@@ -39,9 +57,27 @@ const project = await Project("my-app", {
   environmentVariables: [
     {
       key: "DATABASE_URL",
-      value: alchemy.secret("DATABASE_URL"),
-      type: "encrypted",
       target: ["production", "preview"],
+      // `type: "encrypted"` is the default when `value` is a Secret
+      value: alchemy.secret("DATABASE_URL"),
+    },
+  ],
+});
+```
+
+#### Sensitive
+
+> https://vercel.com/docs/environment-variables/sensitive-environment-variables
+
+```ts
+const project = await Project("my-app", {
+  name: "my-app",
+  environmentVariables: [
+    {
+      key: "DATABASE_URL",
+      target: ["production", "preview"],
+      type: "sensitive",
+      value: alchemy.secret("DATABASE_URL"),
     },
   ],
 });
