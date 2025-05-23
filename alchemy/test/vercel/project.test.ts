@@ -19,7 +19,7 @@ describe("Project Resource", () => {
   const testId = `${BRANCH_PREFIX}-test-project`;
 
   // TODO(sam): re-enable these after merging
-  test.skipIf(true)("create, update, and delete project", async (scope) => {
+  test("create, update, and delete project", async (scope) => {
     let project: Project | undefined;
     try {
       // Create a test project
