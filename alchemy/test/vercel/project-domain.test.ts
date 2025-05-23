@@ -9,7 +9,10 @@ import { BRANCH_PREFIX } from "../util.js";
 import "../../src/test/bun.js";
 import { createVercelApi } from "../../src/vercel/api.js";
 
-const test = alchemy.test(import.meta);
+const test = alchemy.test(import.meta, {
+  prefix: BRANCH_PREFIX,
+});
+
 const api = await createVercelApi({
   baseUrl: "https://api.vercel.com/v9",
 });

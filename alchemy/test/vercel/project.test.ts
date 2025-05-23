@@ -12,14 +12,16 @@ const api = await createVercelApi({
   baseUrl: "https://api.vercel.com/v11",
 });
 
-const test = alchemy.test(import.meta);
+const test = alchemy.test(import.meta, {
+  prefix: BRANCH_PREFIX,
+});
 
 describe("Project Resource", () => {
   // Use BRANCH_PREFIX for deterministic, non-colliding resource names
   const testId = `${BRANCH_PREFIX}-test-project`;
 
   // TODO(sam): re-enable these after merging
-  test.skipIf(true)("create, update, and delete project", async (scope) => {
+  test("create, update, and delete project", async (scope) => {
     let project: Project | undefined;
     try {
       // Create a test project
