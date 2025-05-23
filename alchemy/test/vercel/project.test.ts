@@ -12,7 +12,9 @@ const api = await createVercelApi({
   baseUrl: "https://api.vercel.com/v11",
 });
 
-const test = alchemy.test(import.meta);
+const test = alchemy.test(import.meta, {
+  prefix: BRANCH_PREFIX,
+});
 
 describe("Project Resource", () => {
   // Use BRANCH_PREFIX for deterministic, non-colliding resource names
