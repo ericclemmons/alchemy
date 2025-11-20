@@ -1,5 +1,6 @@
 import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
+import { Secret } from "../secret.ts";
 import { createNeonApi, type NeonApiOptions } from "./api.ts";
 import type * as neon from "./api/types.gen.ts";
 import {
@@ -32,6 +33,11 @@ export type NeonPgVersion = 14 | 15 | 16 | 17 | 18;
  * Properties for creating or updating a Neon project
  */
 export interface NeonProjectProps extends NeonApiOptions {
+  /**
+   * Given a Project ID (e.g. `adjective-noun-123`), adopt the project if it exists.
+   */
+  adopt?: string;
+
   /**
    * Name of the project
    *
@@ -193,6 +199,85 @@ export const NeonProject = Resource(
 
     switch (this.phase) {
       case "create": {
+        if (props.adopt) {
+          const { data } = await api.getProject({
+            path: { project_id: props.adopt },
+          });
+
+          const {
+            data: { branches },
+          } = await api.listProjectBranches({
+            path: { project_id: data.project.id },
+            query: { search: props.default_branch_name ?? "main" },
+          });
+          const [branch] = branches;
+          if (!branch) {
+            throw new Error(
+              `Branch ${props.default_branch_name ?? "main"} does not exist in Neon project ${data.project.id}`,
+            );
+          }
+          const {
+            data: { databases },
+          } = await api.listProjectBranchDatabases({
+            path: { project_id: data.project.id, branch_id: branch.id },
+          });
+          const {
+            data: { endpoints },
+          } = await api.listProjectEndpoints({
+            path: { project_id: data.project.id },
+          });
+          const {
+            data: { roles },
+          } = await api.listProjectBranchRoles({
+            path: { project_id: data.project.id, branch_id: branch.id },
+          });
+
+          const [database] = databases;
+          const [role] = roles;
+          const {
+            data: { uri },
+          } = await api.getConnectionUri({
+            path: { project_id: data.project.id },
+            query: {
+              branch_id: branch.id,
+              database_name: database.name,
+              role_name: role.name,
+            },
+          });
+
+          const url = new URL(uri);
+          const connection_uris = [
+            {
+              connection_uri: new Secret(uri),
+              connection_parameters: {
+                database: database.name,
+                host: url.host,
+                port: 5432,
+                user: url.username,
+                password: new Secret(url.password),
+              },
+            },
+          ] as const satisfies NeonConnectionUri[];
+
+          return {
+            id: data.project.id,
+            name: data.project.name,
+            created_at: data.project.created_at,
+            updated_at: data.project.updated_at,
+            proxy_host: data.project.proxy_host,
+            region_id: data.project.region_id as NeonRegion,
+            pg_version: data.project.pg_version as NeonPgVersion,
+            settings: data.project.settings,
+            default_endpoint_settings: data.project.default_endpoint_settings,
+            history_retention_seconds: data.project.history_retention_seconds,
+            connection_uris,
+            roles: roles.map(formatRole) as [NeonRole, ...NeonRole[]],
+            databases: databases as [neon.Database, ...neon.Database[]],
+            branch,
+            endpoints: endpoints as [neon.Endpoint, ...neon.Endpoint[]],
+          };
+        }
+
         const { data } = await api.createProject({
           body: {
             project: {
