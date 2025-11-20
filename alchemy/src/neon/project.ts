@@ -6,9 +6,9 @@ import type * as neon from "./api/types.gen.ts";
 import {
   formatConnectionUri,
   formatRole,
-  waitForOperations,
   type NeonConnectionUri,
   type NeonRole,
+  waitForOperations,
 } from "./utils.ts";
 
 /**
