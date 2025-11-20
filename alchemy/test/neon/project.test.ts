@@ -92,6 +92,13 @@ describe("NeonProject Resource", () => {
       // Check if endpoints are active, confirming operations were waited for
       expect(project.endpoints![0].current_state).toEqual("active");
 
+      const adoptedProject = await NeonProject(testId, {
+        adopt: project.id,
+      });
+      expect(adoptedProject.id).toEqual(project.id);
+      expect(adoptedProject.name).toEqual(project.name);
+      expect(adoptedProject.region_id).toEqual(project.region_id);
+
       // Update the project name
       const updatedName = `${generateProjectName()}-updated`;
       project = await NeonProject(testId, {
