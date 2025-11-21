@@ -93,7 +93,8 @@ describe("NeonProject Resource", () => {
       expect(project.endpoints![0].current_state).toEqual("active");
 
       const adoptedProject = await NeonProject(testId, {
-        adopt: project.id,
+        adopt: true,
+        name: projectName,
       });
       expect(adoptedProject.id).toEqual(project.id);
       expect(adoptedProject.name).toEqual(project.name);

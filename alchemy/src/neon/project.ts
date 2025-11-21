@@ -34,9 +34,9 @@ export type NeonPgVersion = 14 | 15 | 16 | 17 | 18;
  */
 export interface NeonProjectProps extends NeonApiOptions {
   /**
-   * Given a Project ID (e.g. `adjective-noun-123`), adopt the project if it exists.
+   * When `true`, will adopt an existing project by `name`
    */
-  adopt?: string;
+  adopt?: true;
 
   /**
    * Name of the project
@@ -171,6 +171,13 @@ export interface NeonProject {
  * });
  *
  * @example
+ * // Adopt an existing Neon project by name:
+ * const project = await NeonProject("my-project", {
+ *   adopt: true
+ *   name: "adjective-noun-123",
+ * });
+ *
+ * @example
  * // Create a Neon project in a specific region with a specific PostgreSQL version:
  * const euProject = await NeonProject("my-eu-project", {
  *   name: "My EU Project",
@@ -200,36 +207,43 @@ export const NeonProject = Resource(
     switch (this.phase) {
       case "create": {
         if (props.adopt) {
-          const { data } = await api.getProject({
-            path: { project_id: props.adopt },
+          const {
+            data: { projects },
+          } = await api.listProjects({
+            query: { limit: 1, search: props.name },
           });
-
+          const [project] = projects;
+          if (!project) {
+            throw new Error(
+              `Failed to find existing project '${props.name}' for adoption`,
+            );
+          }
           const {
             data: { branches },
           } = await api.listProjectBranches({
-            path: { project_id: data.project.id },
+            path: { project_id: project.id },
             query: { search: props.default_branch_name ?? "main" },
           });
           const [branch] = branches;
           if (!branch) {
             throw new Error(
-              `Branch ${props.default_branch_name ?? "main"} does not exist in Neon project ${data.project.id}`,
+              `Branch ${props.default_branch_name ?? "main"} does not exist in Neon project ${project.id}`,
             );
           }
           const {
             data: { databases },
           } = await api.listProjectBranchDatabases({
-            path: { project_id: data.project.id, branch_id: branch.id },
+            path: { project_id: project.id, branch_id: branch.id },
           });
           const {
             data: { endpoints },
           } = await api.listProjectEndpoints({
-            path: { project_id: data.project.id },
+            path: { project_id: project.id },
           });
           const {
             data: { roles },
           } = await api.listProjectBranchRoles({
-            path: { project_id: data.project.id, branch_id: branch.id },
+            path: { project_id: project.id, branch_id: branch.id },
           });
 
           const [database] = databases;
@@ -237,7 +251,7 @@ export const NeonProject = Resource(
           const {
             data: { uri },
           } = await api.getConnectionUri({
-            path: { project_id: data.project.id },
+            path: { project_id: project.id },
             query: {
               branch_id: branch.id,
               database_name: database.name,
@@ -260,16 +274,16 @@ export const NeonProject = Resource(
           ] as const satisfies NeonConnectionUri[];
 
           return {
-            id: data.project.id,
-            name: data.project.name,
-            created_at: data.project.created_at,
-            updated_at: data.project.updated_at,
-            proxy_host: data.project.proxy_host,
-            region_id: data.project.region_id as NeonRegion,
-            pg_version: data.project.pg_version as NeonPgVersion,
-            settings: data.project.settings,
-            default_endpoint_settings: data.project.default_endpoint_settings,
-            history_retention_seconds: data.project.history_retention_seconds,
+            id: project.id,
+            name: project.name,
+            created_at: project.created_at,
+            updated_at: project.updated_at,
+            proxy_host: project.proxy_host,
+            region_id: project.region_id as NeonRegion,
+            pg_version: project.pg_version as NeonPgVersion,
+            settings: project.settings,
+            default_endpoint_settings: project.default_endpoint_settings,
+            history_retention_seconds: project.history_retention_seconds,
             connection_uris,
             roles: roles.map(formatRole) as [NeonRole, ...NeonRole[]],
             databases: databases as [neon.Database, ...neon.Database[]],
