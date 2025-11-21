@@ -212,12 +212,16 @@ export const NeonProject = Resource(
           } = await api.listProjects({
             query: { limit: 1, search: props.name },
           });
-          const [project] = projects;
-          if (!project) {
+          if (!projects.length) {
             throw new Error(
               `Failed to find existing project '${props.name}' for adoption`,
             );
           }
+          const {
+            data: { project },
+          } = await api.getProject({
+            path: { project_id: projects[0].id },
+          });
           const {
             data: { branches },
           } = await api.listProjectBranches({
