@@ -39,6 +39,13 @@ export interface NeonProjectProps extends NeonApiOptions {
   adopt?: true;
 
   /**
+   * Whether to delete the database when the resource is destroyed.
+   * When false, the database will only be removed from the state but not deleted via API.
+   * @default true, unless the resource was adopted
+   */
+  delete?: boolean;
+
+  /**
    * Name of the project
    *
    * @default ${app}-${stage}-${id}
@@ -379,8 +386,10 @@ export const NeonProject = Resource(
           history_retention_seconds: data.project.history_retention_seconds,
         };
       }
+
       case "delete": {
-        if (this.output?.id) {
+        const shouldDelete = props.delete ?? !props.adopt;
+        if (shouldDelete && this.output?.id) {
           const response = await api.deleteProject({
             path: {
               project_id: this.output.id,
