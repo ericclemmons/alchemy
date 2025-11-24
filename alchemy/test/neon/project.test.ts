@@ -23,6 +23,7 @@ describe("NeonProject Resource", () => {
 
   test("create, update, and delete neon project", async (scope) => {
     let project: NeonProject | undefined;
+    let adoptedProject: NeonProject | undefined;
     try {
       // Create a test Neon project with basic settings
       const projectName = generateProjectName();
@@ -92,13 +93,26 @@ describe("NeonProject Resource", () => {
       // Check if endpoints are active, confirming operations were waited for
       expect(project.endpoints![0].current_state).toEqual("active");
 
-      const adoptedProject = await NeonProject(testId, {
-        adopt: true,
-        name: projectName,
+      // Create an existing project via API, as if it were already existing in the user's account
+      const {
+        data: { project: existingProject },
+      } = await api.createProject({
+        body: {
+          project: {
+            name: `${projectName}-existing`,
+            region_id: "aws-us-east-1",
+            pg_version: 16,
+          },
+        },
       });
-      expect(adoptedProject.id).toEqual(project.id);
-      expect(adoptedProject.name).toEqual(project.name);
-      expect(adoptedProject.region_id).toEqual(project.region_id);
+      // Adopt the project as a Resource
+      adoptedProject = await NeonProject(`${testId}-adopted`, {
+        adopt: true,
+        name: existingProject.name,
+      });
+      expect(adoptedProject.id).toEqual(existingProject.id);
+      expect(adoptedProject.name).toEqual(existingProject.name);
+      expect(adoptedProject.region_id).toEqual(existingProject.region_id);
 
       // Update the project name
       const updatedName = `${generateProjectName()}-updated`;
@@ -131,6 +145,20 @@ describe("NeonProject Resource", () => {
           throwOnError: false,
         });
         expect(response.status).toEqual(404);
+      }
+
+      // Adopted project should not be automatically deleted by Alchemy
+      if (adoptedProject?.id) {
+        const { response } = await api.getProject({
+          path: { project_id: adoptedProject.id },
+          throwOnError: false,
+        });
+        expect(response.status).toEqual(200);
+
+        await api.deleteProject({
+          path: { project_id: adoptedProject.id },
+          throwOnError: true,
+        });
       }
     }
   });
