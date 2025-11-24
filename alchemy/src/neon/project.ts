@@ -217,11 +217,16 @@ export const NeonProject = Resource(
           const {
             data: { projects },
           } = await api.listProjects({
-            query: { limit: 1, search: props.name },
+            query: { limit: 2, search: props.name },
           });
           if (!projects.length) {
             throw new Error(
               `Failed to find existing project '${props.name}' for adoption`,
+            );
+          }
+          if (projects.length > 1) {
+            throw new Error(
+              `Multiple projects found with name '${props.name}' for adoption. Name must be unique.`,
             );
           }
           const {
