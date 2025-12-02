@@ -1,6 +1,6 @@
+import { alchemy } from "../alchemy.ts";
 import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
-import { Secret } from "../secret.ts";
 import { createNeonApi, type NeonApiOptions } from "./api.ts";
 import type { NeonClient } from "./api/sdk.gen.ts";
 import type * as neon from "./api/types.gen.ts";
@@ -436,13 +436,13 @@ async function fetchProject(
     });
     const url = new URL(uri);
     return {
-      connection_uri: new Secret(uri),
+      connection_uri: alchemy.secret(uri),
       connection_parameters: {
         database: database.name,
         host: url.host,
         port: 5432,
         user: url.username,
-        password: new Secret(url.password),
+        password: alchemy.secret(url.password),
       },
     };
   }
